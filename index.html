@@ -1,7 +1,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.X.X/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.X.X/firebase-firestore-compat.js"></script> ```
+* **Importante:** Verifica la versión `10.X.X` en tu consola de Firebase para usar la más reciente y compatible.
 
-Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que empieza con `document.addEventListener('DOMContentLoaded', () => { ... }` y termina con `</script>`) con este código:
+**2. Modifica el Bloque `<script>` en tu HTML:**
+
+Reemplaza el script completo (desde `// ======================================================================== INITIALIZATION & GLOBAL STATE` hasta el final) con el siguiente código. He marcado los cambios con comentarios `// MODIFICADO PARA FIRESTORE`.
 
 ```html
 <script>
@@ -76,9 +79,8 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
         // ========================================================================
         // FIREBASE INITIALIZATION FOR FRONTEND - MODIFICADO PARA FIRESTORE
         // ========================================================================
-        // Tu configuración de Firebase (la encuentras en la configuración del proyecto en la consola de Firebase)
         const firebaseConfig = {
-            apiKey: "AIzaSyAt_2O9DN5qblHUaDnlKFkDKP270TezY6g", // Tu API Key web de Firebase
+            apiKey: "AIzaSyAt_2O9DN5qblHUaDnlKFkDKP270TezY6g",
             authDomain: "bsc-matra-app.firebaseapp.com",
             projectId: "bsc-matra-app",
             storageBucket: "bsc-matra-app.firebasestorage.app",
@@ -209,39 +211,33 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
         // MODIFICADO PARA FIRESTORE: Esta función ahora carga desde Firestore
         async function loadKpiDataFromFirestore() {
             try {
-                // Obtener el documento que contiene todos los datos de KPIs
-                const docRef = db.collection('kpi_data').doc('current_data'); 
+                const docRef = db.collection('kpi_data').doc('current_data'); // Usaremos un solo documento para todos los KPIs
                 const doc = await docRef.get();
 
                 if (doc.exists) {
-                    // Si el documento existe, cargar los datos en el estado de la aplicación
                     state.kpiDataByDate = doc.data();
                     console.log("Datos de KPIs cargados desde Firestore.");
                 } else {
-                    // Si el documento NO existe (primera vez que se carga la app),
-                    // generamos datos simulados y los guardamos en Firestore.
                     console.log("No hay datos de KPIs en Firestore. Generando datos iniciales simulados.");
-                    populateInitialData(); // Genera los datos simulados
-                    await saveKpiDataToFirestore(); // Y guárdalos por primera vez en Firestore
+                    populateInitialData(); // Si no hay datos, usa la simulación
+                    await saveKpiDataToFirestore(); // Y guárdalos por primera vez
                 }
             } catch (error) {
                 console.error("Error al cargar datos de KPIs desde Firestore:", error);
-                // Si hay un error al cargar, usamos datos simulados como fallback
                 console.log("Generando datos iniciales simulados debido a un error de carga.");
-                populateInitialData(); 
+                populateInitialData(); // Fallback si hay un error
             }
         }
 
         // MODIFICADO PARA FIRESTORE: Guarda los datos en Firestore
         async function saveKpiDataToFirestore() {
             try {
-                // Guardar todo el objeto 'kpiDataByDate' en un solo documento en Firestore
                 const docRef = db.collection('kpi_data').doc('current_data');
-                await docRef.set(state.kpiDataByDate); // Usa .set() para sobrescribir o crear el documento
+                await docRef.set(state.kpiDataByDate); // Guarda todo el objeto de datos
                 console.log("Datos de KPIs guardados en Firestore exitosamente.");
             } catch (error) {
                 console.error("Error al guardar datos de KPIs en Firestore:", error);
-                alert("Error al guardar los datos. Por favor, revise la consola para más detalles.");
+                alert("Error al guardar los datos. Revise la consola para más detalles.");
             }
         }
 
@@ -308,20 +304,19 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
             state.kpiDataByDate = fullData;
         }
         
-        const getPreviousMonth = (year, month) => {
+        function getPreviousMonth(year, month) {
             const monthIndex = state.months.indexOf(month);
             if (monthIndex === 0) {
                 return { year: String(parseInt(year) - 1), month: state.months[11] };
             }
             return { year, month: state.months[monthIndex - 1] };
-        };
+        }
         
-        const getDataForDisplay = (options = {}) => {
+        function getDataForDisplay(options = {}) {
             const { year, month, ignoreFilters } = options;
             const queryYear = year || state.selectedYear;
             const queryMonth = month || state.selectedMonth;
 
-            // MODIFICADO PARA FIRESTORE: Asegurarse de que los datos provengan de state.kpiDataByDate
             const currentData = JSON.parse(JSON.stringify(state.kpiDataByDate[queryYear]?.[queryMonth] || getInitialMonthData()));
             
             // --- Dynamically create calculated KPIs ---
@@ -439,17 +434,16 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
                 filteredData: groupedData,
                 allKpis: allKpis
             };
-        };
+        }
 
         // ========================================================================
         // AUTHENTICATION - MODIFICADO PARA FIRESTORE (Solo la inicialización de autenticación de Firebase)
         // ========================================================================
 
         // MODIFICADO PARA FIRESTORE: Inicializa Firebase Auth para futuras implementaciones
-        // (Aunque tu sistema de usuarios es local, esto prepara el terreno)
-        const auth = firebase.auth(); 
+        const auth = firebase.auth(); // Asegúrate de incluir el SDK de auth si planeas usarlo
 
-        const handleLogin = async (event) => { // MODIFICADO: Ahora es asíncrono
+        function handleLogin(event) {
             event.preventDefault();
             const username = usernameInput.value;
             const password = passwordInput.value;
@@ -464,16 +458,16 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
                 }
                 loginPage.classList.add('hidden');
                 dashboardPage.classList.remove('hidden');
-                await initDashboard(); // MODIFICADO: Espera a que initDashboard cargue los datos
+                initDashboard(); // Llamada a initDashboard después de cargar datos
             } else {
                 loginError.classList.remove('hidden');
             }
-        };
+        }
 
         // MODIFICADO PARA FIRESTORE: Añade logout de Firebase si se usa Auth
         async function handleLogout() {
             state.currentUser = null;
-            // Opcional: Si usas Firebase Auth, puedes descomentar la siguiente línea para cerrar sesión en Firebase también
+            // Opcional: Si usas Firebase Auth, descomenta la siguiente línea
             // await auth.signOut();
             dashboardPage.classList.add('hidden');
             loginPage.classList.remove('hidden');
@@ -485,7 +479,7 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
             }
         }
 
-        const setupLoginPage = () => {
+        function setupLoginPage() {
             const rememberedUser = localStorage.getItem('rememberedUser');
             const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
             let greetingHtml = '';
@@ -506,21 +500,21 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
                 `;
             }
             loginGreeting.innerHTML = greetingHtml;
-        };
+        }
 
         // ========================================================================
         // RENDERING & UI UPDATES
         // ========================================================================
 
-        const destroyAllCharts = () => {
+        function destroyAllCharts() {
             Object.values(state.charts).forEach(chart => {
                 if (chart) chart.destroy();
             });
             state.charts = {};
-        };
+        }
 
-        // MODIFICADO PARA FIRESTORE: Ahora es asíncrono para cargar datos (si no se han cargado ya)
-        const renderDashboard = async () => {
+        // MODIFICADO PARA FIRESTORE: Ahora es asíncrono para cargar datos
+        async function renderDashboard() {
             // Asegurarse de que los datos estén cargados antes de renderizar
             if (Object.keys(state.kpiDataByDate).length === 0) {
                  await loadKpiDataFromFirestore();
@@ -536,9 +530,9 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
             }
             renderTabs();
             renderTabContent();
-        };
+        }
 
-        const renderTabs = () => {
+        function renderTabs() {
             const categories = Object.keys(getDataForDisplay().currentData);
             
             tabsList.innerHTML = `
@@ -550,9 +544,9 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
                 <button data-tab="analisis-ia" class="px-4 py-2.5 text-sm font-medium whitespace-nowrap -mb-px border-b-2 transition-colors duration-200 ${state.selectedCategory === 'analisis-ia' ? 'active' : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'}">Análisis IA</button>
             `;
             lucide.createIcons();
-        };
+        }
 
-        const renderTabContent = () => {
+        function renderTabContent() {
             const { filteredData, allKpis, currentData } = getDataForDisplay();
             tabsContent.innerHTML = ''; // Clear previous content
 
@@ -580,9 +574,9 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
                     lucide.createIcons();
                 }
             }
-        };
+        }
         
-        const createKpiCardElement = (name, kpi, category) => {
+        function createKpiCardElement(name, kpi, category) {
             const template = document.getElementById('kpi-card-template');
             const card = template.content.cloneNode(true);
 
@@ -689,9 +683,9 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
             chartCanvas.id = `sparkline-chart-${name.replace(/\s+/g, '-')}`; 
 
             return card;
-        };
+        }
 
-        const initializeKpiCardChart = (name, kpi, category) => {
+        function initializeKpiCardChart(name, kpi, category) {
             const chartId = `sparkline-chart-${name.replace(/\s+/g, '-')}`;
             const chartCanvas = document.getElementById(chartId);
 
@@ -782,7 +776,7 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
                             displayColors: false,
                             callbacks: {
                                 title: () => null, // Hide title
-                                label: (context) => {
+                                label: function(context) {
                                     const monthLabel = context.label;
                                     let value = context.parsed.y;
                                     let formattedValue = '';
@@ -806,9 +800,9 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
                     scales: { x: { display: false }, y: { display: false } }
                 }
             });
-        };
+        }
 
-        const renderKpiCategoryTab = (categoryData, categoryName) => {
+        function renderKpiCategoryTab(categoryData, categoryName) {
             const container = document.createElement('div');
             container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4';
             
@@ -824,9 +818,9 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
                 });
                 lucide.createIcons();
             }, 0);
-        };
+        }
         
-        const renderMarketShareTab = (categoryData) => {
+        function renderMarketShareTab(categoryData) {
             const container = document.createElement('div');
             container.className = 'grid grid-cols-1 lg:grid-cols-2 gap-6';
             const chartInfo = [];
@@ -903,9 +897,10 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
                     });
                 });
             }, 0);
-        };
+        }
 
-        const renderDashboardTab = (allKpis) => {
+        function renderDashboardTab() {
+            const { allKpis } = getDataForDisplay();
             const statusGroups = { Bueno: [], Regular: [], Malo: [], 'N/A': [] };
             allKpis.forEach(item => {
                 const status = getKPIStatus(item.kpi);
@@ -1070,9 +1065,9 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
                 });
                 lucide.createIcons();
             }, 0);
-        };
+        }
         
-        const renderForecastTab = () => {
+        function renderForecastTab() {
             tabsContent.innerHTML = `
                 <div class="card">
                     <div class="p-6">
@@ -1110,9 +1105,9 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
                 });
                 updateForecastCharts(6);
             }, 0);
-        };
+        }
 
-        const updateForecastCharts = (forecastMonths) => {
+        function updateForecastCharts(forecastMonths) {
             const linearRegression = (data) => {
                 const n = data.length;
                 if (n < 2) return (x) => data[0]?.y || 0;
@@ -1148,8 +1143,8 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
             const salesRegression = linearRegression(salesPoints);
             const utilityRegression = linearRegression(utilityPoints);
             
-            const forecastSales = Array.from({length: forecastMonths}, (_, i) => salesRegression(historicalSales.length + i)); // Changed to salesRegression
-            const forecastUtility = Array.from({length: forecastMonths}, (_, i) => utilityRegression(historicalUtility.length + i)); // Changed to utilityRegression
+            const forecastSales = Array.from({length: forecastMonths}, (_, i) => utilityRegression(historicalSales.length + i)); // Changed to utilityRegression for forecastSales
+            const forecastUtility = Array.from({length: forecastMonths}, (_, i) => salesRegression(historicalUtility.length + i)); // Changed to salesRegression for forecastUtility
             
             const allLabels = [...state.months.map(m => m.substring(0,3))];
             const lastMonthIndex = state.months.length -1;
@@ -1178,9 +1173,9 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
 
             renderChart('forecast-sales-chart', 'Ventas', salesData, historicalSales, '#3b82f6');
             renderChart('forecast-utility-chart', 'Utilidad Operativa', utilityData, historicalUtility, '#14b8a6');
-        };
+        }
         
-        const renderAITab = (currentData) => {
+        function renderAITab(currentData) {
             tabsContent.innerHTML = `
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="card lg:col-span-2">
@@ -1198,9 +1193,9 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
             lucide.createIcons();
 
             document.getElementById('generate-ai-analysis-btn').addEventListener('click', () => generateAIAnalysis(currentData));
-        };
+        }
         
-        const generateAIAnalysis = (currentData) => {
+        function generateAIAnalysis(currentData) {
             // Este es el placeholder para la integración con Gemini más adelante
             // Por ahora, tiene una respuesta simulada
             const btn = document.getElementById('generate-ai-analysis-btn');
@@ -1217,18 +1212,18 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
 
                     ## Puntos Fuertes Destacados
                     <ul>
-                        <li>**Ventas Construcción**: Con un logro del **${(currentData.Ventas['Construcción'].ventas / currentData.Ventas['Construcción'].meta * 100).toFixed(1)}%** (valor simulado), este sector es un motor de crecimiento.</li>
-                        <li>**Utilidad Operativa Construcción**: Un **${(currentData.Utilidad['Construcción'].uop / currentData.Utilidad['Construcción'].meta * 100).toFixed(1)}%** de logro (valor simulado) demuestra una gestión eficiente de costos.</li>
-                        <li>**Participación Caterpillar PINS**: Una sólida cuota de mercado del **${(currentData['Participación']['Participación Caterpillar PINS'].matra / currentData['Participación']['Participación Caterpillar PINS'].industria * 100).toFixed(1)}%** (valor simulado) reafirma nuestra posición.</li>
-                        <li>**Cobertura Gobierno**: Un impresionante **${currentData.Cobertura['Cobertura Gobierno'].value.toFixed(1)}%** (valor simulado) indica que estamos llegando a una gran parte de este segmento.</li>
+                        <li>**Ventas Construcción**: Con un logro del **${(currentData.Ventas['Construcción'].ventas / currentData.Ventas['Construcción'].meta * 100).toFixed(1)}%**, este sector es un motor de crecimiento.</li>
+                        <li>**Utilidad Operativa Construcción**: Un **${(currentData.Utilidad['Construcción'].uop / currentData.Utilidad['Construcción'].meta * 100).toFixed(1)}%** de logro demuestra una gestión eficiente de costos.</li>
+                        <li>**Participación Caterpillar PINS**: Una sólida cuota de mercado del **${(currentData['Participación']['Participación Caterpillar PINS'].matra / currentData['Participación']['Participación Caterpillar PINS'].industria * 100).toFixed(1)}%** reafirma nuestra posición.</li>
+                        <li>**Cobertura Gobierno**: Un impresionante **${currentData.Cobertura['Cobertura Gobierno'].value.toFixed(1)}%** indica que estamos llegando a una gran parte de este segmento.</li>
                     </ul>
 
                     ## Áreas Clave de Oportunidad
                     <ul>
-                        <li>**Rotación John Deere**: Con un valor de **${currentData.Inventario['Rotación John Deere'].value.toFixed(2)}x** (valor simulado), está por debajo de la meta de **2x**, lo que podría indicar inventario estancado o ventas lentas.</li>
-                        <li>**Inventario > 24m - Mack Nuevo**: Un **${currentData.Inventario['Inv. > 24m - Mack Nuevo'].value.toFixed(1)}%** (valor simulado) del inventario total de Mack Nuevo lleva más de 24 meses, superando la meta de **5%**. Esto ata capital y aumenta el riesgo de obsolescencia.</li>
-                        <li>**Ventas Agrícola**: A pesar de los esfuerzos, las ventas se situaron en **${formatCurrency(currentData.Ventas['Agrícola'].ventas)}** (valor simulado), no alcanzando la meta de **${formatCurrency(currentData.Ventas['Agrícola'].meta)}**. Es vital entender los factores que limitan este crecimiento.</li>
-                        <li>**NLS Mensual**: El puntaje de **${currentData['Procesos Internos']['NLS Mensual'].value.toFixed(1)}%** (neto de leales y riesgo, valor simulado) está por debajo de la meta de **72%**, sugiriendo que la satisfacción general del cliente tiene margen de mejora.</li>
+                        <li>**Rotación John Deere**: Con un valor de **${currentData.Inventario['Rotación John Deere'].value.toFixed(2)}x**, está por debajo de la meta de **2x**, lo que podría indicar inventario estancado o ventas lentas.</li>
+                        <li>**Inventario > 24m - Mack Nuevo**: Un **${currentData.Inventario['Inv. > 24m - Mack Nuevo'].value.toFixed(1)}%** del inventario total de Mack Nuevo lleva más de 24 meses, superando la meta de **5%**. Esto ata capital y aumenta el riesgo de obsolescencia.</li>
+                        <li>**Ventas Agrícola**: A pesar de los esfuerzos, las ventas se situaron en **${formatCurrency(currentData.Ventas['Agrícola'].ventas)}**, no alcanzando la meta de **${formatCurrency(currentData.Ventas['Agrícola'].meta)}**. Es vital entender los factores que limitan este crecimiento.</li>
+                        <li>**NLS Mensual**: El puntaje de **${currentData['Procesos Internos']['NLS Mensual'].value.toFixed(1)}%** (neto de leales y riesgo) está por debajo de la meta de **72%**, sugiriendo que la satisfacción general del cliente tiene margen de mejora.</li>
                     </ul>
 
                     ## Recomendación Estratégica para el Próximo Mes
@@ -1241,21 +1236,21 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
                 btn.innerHTML = `<i data-lucide="sparkles" class="w-4 h-4"></i>Generar Análisis`;
                 lucide.createIcons();
             }, 2000); // Simula un retardo de 2 segundos
-        };
+        }
 
         // ========================================================================
         // MODAL & DATA MANAGEMENT - MODIFICADO PARA FIRESTORE
         // ========================================================================
         
-        const openManagementModal = () => {
+        function openManagementModal() {
             // MODIFICADO PARA FIRESTORE: Asegurarse de que los selectores del modal reflejen el estado actual
             modalYearSelect.value = state.selectedYear;
             modalMonthSelect.value = state.selectedMonth;
             populateModalForm(state.selectedYear, state.selectedMonth);
             managementModal.showModal();
-        };
+        }
         
-        const populateModalForm = (year, month) => {
+        function populateModalForm(year, month) {
             // MODIFICADO PARA FIRESTORE: Cargar datos desde el estado global (que ya viene de Firestore)
             const dataToEdit = state.kpiDataByDate[year]?.[month] || getInitialMonthData();
             modalFormContent.innerHTML = '';
@@ -1306,10 +1301,10 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
                     }
                 });
             });
-        };
+        }
         
         // MODIFICADO PARA FIRESTORE: Ahora guarda en Firestore
-        const saveModalChanges = async () => { // MODIFICADO: Ahora es asíncrono
+        async function saveModalChanges() {
             const year = modalYearSelect.value;
             const month = modalMonthSelect.value;
             const dataToEdit = state.kpiDataByDate[year]?.[month] || getInitialMonthData(); // Carga la versión actual
@@ -1338,9 +1333,9 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
 
             managementModal.close();
             renderDashboard();
-        };
+        }
 
-        const getMonthSequence = (endYearStr, endMonthStr, count) => {
+        function getMonthSequence(endYearStr, endMonthStr, count) {
             const sequence = [];
             let currentYear = parseInt(endYearStr);
             let currentMonthIndex = state.months.indexOf(endMonthStr);
@@ -1354,9 +1349,9 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
                 }
             }
             return sequence;
-        };
+        }
 
-        const handleExport = () => {
+        function handleExport() {
             const { allKpis } = getDataForDisplay();
             let csvContent = "data:text/csv;charset=utf-8,";
             csvContent += "Category,KPI,Status,Value,Meta\n";
@@ -1381,13 +1376,13 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
             document.body.appendChild(link); 
             link.click();
             document.body.removeChild(link);
-        };
+        }
 
 
         // ========================================================================
         // INITIALIZATION & EVENT LISTENERS - MODIFICADO PARA FIRESTORE
         // ========================================================================
-        const initDashboard = async () => { // MODIFICADO: Ahora es asíncrona
+        async function initDashboard() { // MODIFICADO: Ahora es asíncrona
             // Carga los datos de KPIs desde Firestore al iniciar
             await loadKpiDataFromFirestore();
 
@@ -1405,7 +1400,7 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
             statusFilterSelect.value = state.filterStatus;
 
             // Initial render
-            renderDashboard(); // renderDashboard ya no necesita await aquí, porque loadKpiDataFromFirestore ya lo hizo.
+            renderDashboard(); // No necesita 'await' aquí porque ya loadKpiDataFromFirestore fue await
 
             // Event Listeners
             yearSelect.addEventListener('change', (e) => { state.selectedYear = e.target.value; renderDashboard(); });
@@ -1443,7 +1438,7 @@ Ahora, **reemplaza el contenido completo de tu etiqueta `<script>`** (la que emp
             modalYearSelect.addEventListener('change', (e) => populateModalForm(e.target.value, modalMonthSelect.value));
             modalMonthSelect.addEventListener('change', (e) => populateModalForm(modalYearSelect.value, e.target.value));
             exportBtn.addEventListener('click', handleExport);
-        };
+        }
 
         // Setup login page on initial load
         setupLoginPage();
