@@ -480,8 +480,9 @@
                             // Ensure nested objects also exist in rawMonthData before merging
                             rawMonthData[category] = rawMonthData[category] || {};
                             Object.keys(rawMonthData[category]).forEach(kpiName => {
+                                rawMonthData[category][kpiName] = rawMonthData[category][kpiName] || {}; // Ensure KPI object exists
                                 if (fetchedData[category][kpiName]) {
-                                    rawMonthData[category][kpiName] = rawMonthData[category][kpiName] || {};
+                                    // Deep merge for KPI properties
                                     Object.assign(rawMonthData[category][kpiName], fetchedData[category][kpiName]);
                                 }
                             });
@@ -497,12 +498,12 @@
                 // alert("No se pudieron cargar/inicializar los datos de la base de datos. Revisa tu conexión a internet y las reglas de Firebase."); // Commented out to avoid multiple alerts
             }
 
-            // Update local state with fetched (or initialized) data
+            // Update local state with fetched (or initialized) raw data
             state.kpiDataByDate[queryYear] = state.kpiDataByDate[queryYear] || {};
             state.kpiDataByDate[queryYear][queryMonth] = rawMonthData;
 
             // --- Dynamically create calculated KPIs based on rawMonthData ---
-            // This 'currentData' will be the one used for display and further calculations
+            // This 'currentDataForDisplay' will be the one used for display and further calculations
             const currentDataForDisplay = JSON.parse(JSON.stringify(rawMonthData)); 
 
             // Calculated "Clientes Nuevos"
@@ -735,9 +736,9 @@
                 const categoryData = filteredData[state.selectedCategory];
                 if (categoryData && Object.keys(categoryData).length > 0) {
                     if(state.selectedCategory === 'Participación') {
-                        renderMarketShareTab(categoryData);
+                        await renderMarketShareTab(categoryData); // Await this as it calls async getDataForDisplay
                     } else {
-                        renderKpiCategoryTab(categoryData, state.selectedCategory);
+                        await renderKpiCategoryTab(categoryData, state.selectedCategory); // Await this as it calls async initializeKpiCardChart
                     }
                 } else {
                     tabsContent.innerHTML = `
@@ -759,8 +760,8 @@
             const styles = getStatusStyles(status);
             
             const { year: prevYear, month: prevMonth } = getPreviousMonth(state.selectedYear, state.selectedMonth);
-            // Get previous month's raw data for accurate trend calculation
-            // This is awaited in the renderDashboard -> renderTabContent call chain, so should be available in state.kpiDataByDate
+            // Get previous month's processed data for accurate trend calculation
+            // This call should be safe now, as getDataForDisplay is awaited upstream in renderTabContent
             const { allKpis: prevAllKpis } = getDataForDisplay({ year: prevYear, month: prevMonth, ignoreFilters: true });
             const prevKpiFound = prevAllKpis.find(item => item.name === name);
             const prevKpi = prevKpiFound ? prevKpiFound.kpi : null;
@@ -824,11 +825,11 @@
             if (kpi.type === 'utilidad_sector') {
                 const achievement = (kpi.meta || 0) > 0 ? ((kpi.uop || 0) / kpi.meta) * 100 : 0;
                 const colorClass = achievement >= 100 ? 'text-green-600' : achievement >= 90 ? 'text-yellow-600' : 'text-red-600';
-                card.querySelector('.kpi-achievement').innerHTML = `<div class="text-sm font-bold ${colorClass}">${achievement.toFixed(1)}% Logro</div>`;
+                card.querySelector('.kpi-achievement').innerHTML = `<div class="text-sm font-bold ${achievement.toFixed(1)}% Logro</div>`;
             } else if (kpi.type === 'venta_sector') {
                 const achievement = (kpi.meta || 0) > 0 ? ((kpi.ventas || 0) / kpi.meta) * 100 : 0;
                 const colorClass = achievement >= 100 ? 'text-green-600' : achievement >= 90 ? 'text-yellow-600' : 'text-red-600';
-                card.querySelector('.kpi-achievement').innerHTML = `<div class="text-sm font-bold ${colorClass}">${achievement.toFixed(1)}% Logro</div>`;
+                card.querySelector('.kpi-achievement').innerHTML = `<div class="text-sm font-bold ${achievement.toFixed(1)}% Logro</div>`;
             } else if (kpi.type === 'market_share' || kpi.type === 'percentage' || kpi.type === 'new_client_percentage' || kpi.type === 'cobertura_percentage' || kpi.type === 'csa_percentage' || kpi.type === 'nls_percentage') {
                 const achievement = (kpi.meta || 0) > 0 ? ((kpi.value || 0) / kpi.meta) * 100 : 0;
                 let colorClass;
@@ -867,20 +868,27 @@
                 
                 // Find the specific KPI within the processed data for this historical month
                 let historicalKpi = null;
-                if (category === 'Ventas' || category === 'Utilidad') {
-                    const sectorName = name.replace(`${category} `, '');
-                    historicalKpi = historicalDataPoint[category]?.[sectorName];
-                } else {
+                if (category === 'Ventas' || category === 'Utilidad' || category === 'Cobertura') {
+                    // For these categories, the name often includes the sector (e.g., "Ventas Agrícola")
+                    // We need to extract the sector part to find the base KPI in the raw data,
+                    // or directly find the processed KPI by its full name.
+                    historicalKpi = historicalDataPoint[category]?.[name]; // Look for the full name directly
+                } else if (category === 'Clientes Nuevos') {
+                    // Specific logic for Client KPIs, which are calculated.
+                    // This assumes `historicalDataPoint` already has the 'Clientes Nuevos' category calculated.
+                    historicalKpi = historicalDataPoint[category]?.[name];
+                } else { // For 'Procesos Internos', 'Inventario', 'Participación'
                     historicalKpi = historicalDataPoint[category]?.[name];
                 }
 
-                if (!historicalKpi) return 0; 
+                if (!historicalKpi) return 0; // Return 0 if KPI is not found for historical month
 
+                // Extract the value based on its type
                 if (historicalKpi.type === 'venta_sector') return historicalKpi.ventas || 0;
                 if (historicalKpi.type === 'utilidad_sector') return historicalKpi.uop || 0;
                 if (historicalKpi.type === 'market_share') return (historicalKpi.industria || 0) > 0 ? ((historicalKpi.matra || 0) / historicalKpi.industria) * 100 : 0;
                 
-                // For all other types that use 'value' (percentage, ratio, rotacion, inventory, csa, nls)
+                // For all other types that use 'value' (percentage, ratio, rotacion, inventory_percentage, csa_percentage, nls_percentage)
                 return historicalKpi.value || 0;
             }));
 
@@ -946,6 +954,7 @@
             const container = document.createElement('div');
             container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4';
             
+            // Loop through data to create card elements
             Object.entries(categoryData).forEach(([name, kpi]) => {
                 container.appendChild(createKpiCardElement(name, kpi, categoryName));
             });
@@ -955,8 +964,9 @@
             // Delay chart initialization to ensure canvases are in DOM
             await new Promise(resolve => setTimeout(resolve, 0)); 
             
+            // Initialize charts sequentially or in parallel
             for (const [name, kpi] of Object.entries(categoryData)) {
-                await initializeKpiCardChart(name, kpi, categoryName);
+                await initializeKpiCardChart(name, kpi, categoryName); // Await each chart initialization
             }
             lucide.createIcons();
         }
@@ -970,16 +980,16 @@
                 const brand = name.replace('Participación ', '');
                 const chartData = await Promise.all(state.months.map(async month => { // Map also made async
                     const monthRawData = state.kpiDataByDate[state.selectedYear]?.[month];
-                    if (!monthRawData) return { mes: month.substring(0,3), industria: 0, matra: 0, marketShare: 0 };
+                    if (!monthRawData || !monthRawData['Participación']?.[name]) return { mes: month.substring(0,3), industria: 0, matra: 0, marketShare: 0 };
                     
-                    const monthKpi = monthRawData['Participación']?.[name];
+                    const monthKpi = monthRawData['Participación'][name];
                     if (!monthKpi) return { mes: month.substring(0,3), industria: 0, matra: 0, marketShare: 0 };
 
                     return {
                         mes: month.substring(0,3),
                         industria: monthKpi.industria || 0,
                         matra: monthKpi.matra || 0,
-                        marketShare: (monthKpi.industria || 0) > 0 ? (monthKpi.matra / monthKpi.industria) * 100 : 0
+                        marketShare: (monthKpi.industria || 0) > 0 ? ((monthKpi.matra || 0) / monthKpi.industria) * 100 : 0
                     };
                 }));
                 chartInfo.push({ brand, chartData });
@@ -1052,9 +1062,8 @@
             
             const sectorData = async (dataType) => { // Made async
                 return await Promise.all(state.months.map(async month => { // Map also made async
-                    // Ensure month data is loaded from Firestore before summing
+                    // Ensure month data is loaded and processed from Firestore before summing
                     const { currentData: monthData } = await getDataForDisplay({ year: state.selectedYear, month, ignoreFilters: true });
-                    if (!monthData) return { value: 0, meta: 0 };
                     
                     let totalValue = 0, totalMeta = 0;
                     const sectorsToSum = state.selectedSector === 'todos' ? state.sectors : [state.selectedSector];
@@ -1098,7 +1107,7 @@
             const minSalesIndex = salesValues.indexOf(minSales);
             const salesBarColors = salesValues.map((val, index) => {
                 if (index === maxSalesIndex) return '#0065a2';
-                if (index === minSalesIndex && salesValues.length > 1) return '#e77577'; // Only highlight min if there's more than one value
+                if (index === minSalesIndex && salesValues.length > 1 && minSales > 0) return '#e77577'; // Only highlight min if there's more than one value and not zero
                 return '#bfdbfe';
             });
             const salesCtx = document.getElementById('sales-trend-chart').getContext('2d');
@@ -1135,7 +1144,7 @@
             const minUtilityIndex = utilityValues.indexOf(minUtility);
             const utilityBarColors = utilityValues.map((val, index) => {
                 if (index === maxUtilityIndex) return '#0065a2';
-                if (index === minUtilityIndex && utilityValues.length > 1) return '#e77577';
+                if (index === minUtilityIndex && utilityValues.length > 1 && minUtility > 0) return '#e77577';
                 return '#99f6e4';
             });
             const utilityCtx = document.getElementById('utility-trend-chart').getContext('2d');
@@ -1288,40 +1297,50 @@
         async function updateForecastCharts(forecastMonths) { // Made async
             const linearRegression = (data) => {
                 const n = data.length;
+                // Handle cases where data might be empty or only zeros
+                if (n === 0 || data.every(d => d.y === 0)) {
+                    return (x) => 0; // Return 0 for all forecasts if no meaningful data
+                }
                 if (n < 2) return (x) => data[0]?.y || 0;
                 const sumX = data.reduce((acc, d) => acc + d.x, 0);
                 const sumY = data.reduce((acc, d) => acc + d.y, 0);
                 const sumXY = data.reduce((acc, d) => acc + d.x * d.y, 0);
                 const sumXX = data.reduce((acc, d) => acc + d.x * d.x, 0);
-                const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+                const denominator = (n * sumXX - sumX * sumX);
+                if (denominator === 0) { // Avoid division by zero if all x values are the same
+                    return (x) => data[0]?.y || 0; 
+                }
+                const slope = (n * sumXY - sumX * sumY) / denominator;
                 const intercept = (sumY - slope * sumX) / n;
+                // Ensure slope and intercept are valid numbers
                 if(isNaN(slope) || isNaN(intercept)) return (x) => data[data.length-1]?.y || 0;
                 return (x) => Math.max(0, slope * x + intercept);
             };
 
             const getHistoricalData = async (dataType) => { // Made async
-                return await Promise.all(state.months.map(async month => { // Map also made async
+                return await Promise.all(state.months.map(async (month, index) => { // Map also made async
                     const { currentData: monthData } = await getDataForDisplay({ year: state.selectedYear, month, ignoreFilters: true }); // Get processed data
-                    if (!monthData) return 0;
+                    
                     let totalValue = 0;
                     const sectorsToSum = state.selectedSector === 'todos' ? state.sectors : [state.selectedSector];
                     sectorsToSum.forEach(sector => {
                         const data = monthData[dataType]?.[sector];
                         if(data) totalValue += (dataType === 'Ventas' ? (data.ventas || 0) : (data.uop || 0));
                     });
-                    return totalValue;
+                    return { x: index, y: totalValue }; // Return object with x (index) and y (value)
                 }));
             };
             
             const historicalSales = await getHistoricalData('Ventas'); // Await data
             const historicalUtility = await getHistoricalData('Utilidad'); // Await data
             
-            const salesPoints = historicalSales.map((y, x) => ({x, y}));
-            const utilityPoints = historicalUtility.map((y, x) => ({x, y}));
+            // Filter out points with zero values for more meaningful regression if desired, or handle them in regression.
+            // For now, linearRegression handles zero or empty arrays.
 
-            const salesRegression = linearRegression(salesPoints);
-            const utilityRegression = linearRegression(utilityPoints);
+            const salesRegression = linearRegression(historicalSales.filter(d => d.y !== 0)); // Filter out zero values for regression
+            const utilityRegression = linearRegression(historicalUtility.filter(d => d.y !== 0)); // Filter out zero values for regression
             
+            // Forecast values based on regression, starting from the end of historical data's x-axis
             const forecastSales = Array.from({length: forecastMonths}, (_, i) => salesRegression(historicalSales.length + i));
             const forecastUtility = Array.from({length: forecastMonths}, (_, i) => utilityRegression(historicalUtility.length + i));
             
@@ -1331,10 +1350,10 @@
                 allLabels.push(state.months[(lastMonthIndex + i + 1) % 12].substring(0,3));
             }
 
-            const salesData = [...historicalSales, ...forecastSales];
-            const utilityData = [...historicalUtility, ...forecastUtility];
+            const fullSalesData = [...historicalSales.map(d => d.y), ...forecastSales]; // Use only y-values for chart data
+            const fullUtilityData = [...historicalUtility.map(d => d.y), ...forecastUtility]; // Use only y-values for chart data
 
-            const renderChart = (id, chartName, data, historicalData, color) => {
+            const renderChart = (id, chartName, data, historicalDataYValues, color) => { // historicalDataYValues are just the Y-values
                 const ctx = document.getElementById(id).getContext('2d');
                 if (state.charts[id]) state.charts[id].destroy();
                 state.charts[id] = new Chart(ctx, {
@@ -1342,16 +1361,24 @@
                     data: {
                         labels: allLabels.slice(0, data.length),
                         datasets: [
-                            { label: 'Histórico', data: historicalData, borderColor: color, tension: 0.1, borderWidth: 2 },
-                            { label: 'Pronóstico', data: Array(historicalData.length-1).fill(null).concat(data.slice(historicalData.length-1)), borderColor: color, borderDash: [5, 5], tension: 0.1, borderWidth: 2 }
+                            { label: 'Histórico', data: historicalDataYValues, borderColor: color, tension: 0.1, borderWidth: 2 },
+                            { 
+                                label: 'Pronóstico', 
+                                // Only show forecast data starting from the last historical point
+                                data: Array(historicalDataYValues.length -1).fill(null).concat(data.slice(historicalDataYValues.length -1)), 
+                                borderColor: color, 
+                                borderDash: [5, 5], 
+                                tension: 0.1, 
+                                borderWidth: 2 
+                            }
                         ]
                     },
                     options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: value => formatCurrency(value) } } } }
                 });
             };
 
-            renderChart('forecast-sales-chart', 'Ventas', salesData, historicalSales, '#3b82f6');
-            renderChart('forecast-utility-chart', 'Utilidad Operativa', utilityData, historicalUtility, '#14b8a6');
+            renderChart('forecast-sales-chart', 'Ventas', fullSalesData, historicalSales.map(d => d.y), '#3b82f6');
+            renderChart('forecast-utility-chart', 'Utilidad Operativa', fullUtilityData, historicalUtility.map(d => d.y), '#14b8a6');
         }
         
         async function renderAITab(currentData) { // Made async (though currentData is already fetched)
@@ -1418,9 +1445,9 @@
                 const totalUtilityMeta = Object.values(rawDataForAnalysis.Utilidad).reduce((sum, u) => sum + (u.meta || 0), 0);
                 
                 summary += `<li><strong>Resumen General:</strong> El rendimiento general de ${state.selectedMonth} ${state.selectedYear} ha sido `;
-                if (totalSales >= totalSalesMeta * 0.95 && totalUtility >= totalUtilityMeta * 0.95) {
+                if (totalSalesMeta > 0 && totalSales >= totalSalesMeta * 0.95 && totalUtilityMeta > 0 && totalUtility >= totalUtilityMeta * 0.95) {
                     summary += `**sólido** con ventas y utilidad cerca o por encima de las metas.`;
-                } else if (totalSales >= totalSalesMeta * 0.8 && totalUtility >= totalUtilityMeta * 0.8) {
+                } else if (totalSalesMeta > 0 && totalSales >= totalSalesMeta * 0.8 && totalUtilityMeta > 0 && totalUtility >= totalUtilityMeta * 0.8) {
                     summary += `**aceptable**, pero hay áreas con oportunidad de mejora.`;
                 } else {
                     summary += `**desafiante**, requiriendo atención en varios frentes.`;
@@ -1550,7 +1577,9 @@
                             } else if (kpi.unit === 'x') {
                                 displayValue = `${(kpi.value || 0).toFixed(2)}${kpi.unit}`;
                             } else if (kpi.type === 'inventory') { // Raw inventory has total, >12m, >24m
-                                const rawInvData = rawDataForQuery['Inventario']?.[name.replace(/Inv\. > (12|24)m - /, 'Inventario ')];
+                                // Re-fetch raw data for the specific original KPI name if needed for detailed display
+                                const originalKpiName = name.replace(/Inv\. > (12|24)m - /, 'Inventario ');
+                                const rawInvData = rawDataForQuery['Inventario']?.[originalKpiName];
                                 if (rawInvData) {
                                     displayValue = `Total: ${formatCurrency(rawInvData.total || 0)}, >12m: ${formatCurrency(rawInvData.mayor_12_meses || 0)}, >24m: ${formatCurrency(rawInvData.mayor_24_meses || 0)}`;
                                 } else {
@@ -1603,8 +1632,9 @@
                         if (fetchedData[category]) {
                             dataToEdit[category] = dataToEdit[category] || {}; // Ensure category exists in template
                             Object.keys(dataToEdit[category]).forEach(kpiName => {
+                                dataToEdit[category][kpiName] = dataToEdit[category][kpiName] || {}; // Ensure KPI exists in template
                                 if (fetchedData[category][kpiName]) {
-                                    dataToEdit[category][kpiName] = dataToEdit[category][kpiName] || {}; // Ensure KPI exists in template
+                                    // Deep merge for KPI properties
                                     Object.assign(dataToEdit[category][kpiName], fetchedData[category][kpiName]);
                                 }
                             });
@@ -1626,9 +1656,6 @@
 
                 // Filter KPIs within 'Inventario' to show only raw inputs and rotation (not derived percentages)
                 let kpisForModal = Object.entries(kpis);
-                // if (category === 'Inventario') {
-                //     kpisForModal = kpisForModal.filter(([kpiName, kpiData]) => kpiData.type === 'inventory' || kpiData.type === 'rotacion');
-                // }
                 
                 // Filter KPIs within 'Procesos Internos' to show only direct inputs
                 if (category === 'Procesos Internos') {
@@ -1801,10 +1828,10 @@
             const month = modalMonthSelect.value;
             const dateKey = `${year}-${month}`;
 
-            // Start with the current raw data for the month to preserve untouched fields
-            // Fetch it again to ensure it's the absolute latest from Firestore before updating
+            // Fetch the current raw data from Firestore to ensure we have the latest version
             const currentDocRef = firebase_doc(db, 'kpis_por_mes', dateKey);
             const currentDocSnap = await firebase_getDoc(currentDocRef);
+            // Use existing data or a fresh template if document doesn't exist
             let rawDataToSave = currentDocSnap.exists() ? currentDocSnap.data() : JSON.parse(JSON.stringify(getInitialMonthData()));
 
 
@@ -1905,42 +1932,61 @@
         }
 
         async function handleExport() { // Made async
-            const { allKpis } = await getDataForDisplay({ignoreFilters: true}); // Await all data before export
+            const { allKpis, currentData: rawDataForExport } = await getDataForDisplay({ignoreFilters: true}); // Get all raw and processed KPIs
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Category,KPI,Status,Value,Meta\n";
+            csvContent += "Category,KPI,Type,Status,Value,Meta,Raw Data Details\n"; // Added Raw Data Details column
 
-            allKpis.forEach(({ category, name, kpi }) => {
-                const status = getKPIStatus(kpi);
-                let value;
-                if (kpi.type === 'venta_sector') value = kpi.ventas || 0;
-                else if (kpi.type === 'utilidad_sector') value = kpi.uop || 0;
-                else if (kpi.type === 'market_share') value = (kpi.industria || 0) > 0 ? ((kpi.matra || 0) / kpi.industria) * 100 : 0;
-                else value = kpi.value || 0; // For percentage, ratio, rotacion, csa, nls, etc.
-                
-                // Add specific values for export formatting
-                if (kpi.type === 'inventory_percentage') { // These are calculated percentages for display, not raw.
-                    // If you wanted to export the raw inventory numbers, you'd need to access `state.kpiDataByDate`
-                    // and then the specific raw `inventory` KPI for this month/year.
-                    value = `${(kpi.value || 0).toFixed(1)}%`;
-                } else if (kpi.type === 'csa_percentage') {
-                    value = `${(kpi.value || 0).toFixed(1)}%`;
-                } else if (kpi.type === 'nls_percentage') {
-                    value = `${(kpi.value || 0).toFixed(1)}%`;
-                } else if (kpi.type === 'new_client_percentage') {
-                    value = `${(kpi.value || 0).toFixed(1)}%`;
-                } else if (kpi.type === 'cobertura_percentage') {
-                     value = `${(kpi.value || 0).toFixed(1)}%`;
-                } else if (kpi.type === 'rotacion') {
-                    value = `${(kpi.value || 0).toFixed(2)}${kpi.unit}`;
-                } else if (kpi.type === 'venta_sector') {
-                    value = `${(kpi.ventas || 0)}`; // Export raw number, not formatted currency
-                } else if (kpi.type === 'utilidad_sector') {
-                    value = `${(kpi.uop || 0)}`; // Export raw number
-                }
+            // Iterate over the raw data structure for comprehensive export
+            Object.entries(rawDataForExport).forEach(([category, kpis]) => {
+                if (category === 'Clientes Nuevos') return; // Skip derived category
+
+                Object.entries(kpis).forEach(([kpiName, kpiData]) => {
+                    const status = getKPIStatus(kpiData); // Use the kpiData directly
+                    let valueToExport;
+                    let rawDataDetails = '';
+
+                    // Determine value and raw data details based on type
+                    if (kpiData.type === 'venta_sector') {
+                        valueToExport = kpiData.ventas || 0;
+                        rawDataDetails = `Ventas Nuevas: ${kpiData.ventas_nuevas || 0}`;
+                    } else if (kpiData.type === 'utilidad_sector') {
+                        valueToExport = kpiData.uop || 0;
+                    } else if (kpiData.type === 'market_share') {
+                        valueToExport = (kpiData.industria || 0) > 0 ? ((kpiData.matra || 0) / kpiData.industria) * 100 : 0;
+                        rawDataDetails = `Matra: ${kpiData.matra || 0}, Industria: ${kpiData.industria || 0}`;
+                    } else if (kpiData.type === 'inventory') {
+                        valueToExport = `Total: ${kpiData.total || 0}`; // Export total as primary value
+                        rawDataDetails = `>12m: ${kpiData.mayor_12_meses || 0}, >24m: ${kpiData.mayor_24_meses || 0}`;
+                    } else if (kpiData.type === 'csa_raw') {
+                        valueToExport = (kpiData.unidades_totales_cat_sem || 0) > 0 ? ((kpiData.unidades_con_csa || 0) / kpiData.unidades_totales_cat_sem) * 100 : 0;
+                        rawDataDetails = `Con CSA: ${kpiData.unidades_con_csa || 0}, Total Unidades: ${kpiData.unidades_totales_cat_sem || 0}`;
+                    } else if (kpiData.type === 'nls_raw') {
+                        valueToExport = (kpiData.encuestas_totales || 0) > 0 ? (((kpiData.leales || 0) - (kpiData.riesgo || 0)) / kpiData.encuestas_totales) * 100 : 0;
+                        rawDataDetails = `Leales: ${kpiData.leales || 0}, Riesgo: ${kpiData.riesgo || 0}, Total Encuestas: ${kpiData.encuestas_totales || 0}`;
+                    } else { // Generic value/meta KPIs (percentage, rotacion, etc.)
+                        valueToExport = kpiData.value || 0;
+                    }
+
+                    // Format value if it's a number to avoid scientific notation for large numbers in CSV
+                    if (typeof valueToExport === 'number') {
+                        valueToExport = valueToExport.toString();
+                    } else if (valueToExport.includes(':')) { // For complex raw data details already formatted
+                         valueToExport = `"${valueToExport}"`; // Wrap in quotes if it contains commas or special chars
+                    }
 
 
-                const row = [category, `"${name}"`, status, value, kpi.meta || ''].join(','); // Ensure meta is exported, use empty string if undefined
-                csvContent += row + "\n";
+                    const row = [
+                        category, 
+                        `"${kpiName}"`, 
+                        kpiData.type || 'N/A', 
+                        status, 
+                        valueToExport, 
+                        kpiData.meta || '',
+                        `"${rawDataDetails}"` // Ensure raw details are quoted
+                    ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(','); // Double quotes and escape existing quotes
+
+                    csvContent += row + "\n";
+                });
             });
             
             const encodedUri = encodeURI(csvContent);
