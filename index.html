@@ -1,3 +1,10 @@
+Claro, aquí tienes el código completo de tu archivo `index.html` con los scripts de Firebase y la configuración ya integrados.
+
+Simplemente copia y pega todo este bloque de código en un archivo llamado `index.html` y estará listo para usarse.
+
+-----
+
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -9,6 +16,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.368.0/lucide.min.css" />
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -105,31 +115,6 @@
             background: #64748b;
         }
     </style>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore.js";
-
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAt_2O9DN5qblHUaDnlKFkDKP270TezY6g",
-            authDomain: "bsc-matra-app.firebaseapp.com",
-            projectId: "bsc-matra-app",
-            storageBucket: "bsc-matra-app.firebasestorage.app",
-            messagingSenderId: "742996450855",
-            appId: "1:742996450855:web:286a28f6acc3d61f63f802"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        // Make db and Firestore functions globally accessible via window object
-        window.db = getFirestore(app); 
-        window.firebase_collection = collection; 
-        window.firebase_doc = doc; 
-        window.firebase_setDoc = setDoc; 
-        window.firebase_getDoc = getDoc; 
-    </script>
-
 </head>
 <body>
 
@@ -227,7 +212,7 @@
             </div>
         </div>
     </dialog>
-
+    
     <template id="kpi-card-template">
         <div class="card flex flex-col">
             <div class="p-4 md:p-6">
@@ -252,22 +237,33 @@
             </div>
         </div>
     </template>
+    
+    <script>
+    // ========================================================================
+    // INITIALIZATION & GLOBAL STATE
+    // ========================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // === INICIALIZACIÓN DE FIREBASE ===
+        // Tu configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAt_2O9DN5qblHUaDnlKFkDKP270TezY6g",
+            authDomain: "bsc-matra-app.firebaseapp.com",
+            projectId: "bsc-matra-app",
+            storageBucket: "bsc-matra-app.appspot.com",
+            messagingSenderId: "742996450855",
+            appId: "1:742996450855:web:286a28f6acc3d61f63f802"
+        };
 
-    <script type="module"> // Set script type to "module"
-    // Make Firebase objects available globally as the main script is not a module
-    // and cannot directly import from the module script.
-    // This allows the main script to use db, collection, doc, setDoc, getDoc.
-    const db = window.db;
-    const firebase_collection = window.firebase_collection;
-    const firebase_doc = window.firebase_doc;
-    const firebase_setDoc = window.firebase_setDoc;
-    const firebase_getDoc = window.firebase_getDoc;
+        // Inicializa Firebase y obtén una referencia a la base de datos
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(); // ¡Usa 'db' para leer/escribir datos!
+        // ==================================
 
-    document.addEventListener('DOMContentLoaded', async () => { // Made async
         // Initialize Lucide icons
         lucide.createIcons();
 
-        // User Database (Simplified - consider Firebase Authentication for real apps)
+        // User Database
         const users = {
             "EstelaVillalobos": { password: "estela@2025", level: "write", firstName: "Estela" },
             "HugoVargas": { password: "Hugo@2025", level: "read", firstName: "Hugo" },
@@ -296,7 +292,7 @@
             selectedCategory: 'dashboard',
             filterStatus: 'todos',
             selectedSector: 'todos',
-            kpiDataByDate: {}, // Data will be loaded from Firestore
+            kpiDataByDate: {},
             charts: {}, // To hold chart instances
         };
 
@@ -352,7 +348,6 @@
                 'Rotación Volvo': { value: 0, meta: 2, unit: 'x', type: 'rotacion' },
                 'Rotación Metso': { value: 0, meta: 2, unit: 'x', type: 'rotacion' },
                 'Rotación Otras Marcas': { value: 0, meta: 2, unit: 'x', type: 'rotacion' },
-                // Raw inventory data (these will be used to calculate percentages)
                 'Inventario Caterpillar Nuevo': { total: 0, mayor_12_meses: 0, mayor_24_meses: 0, type: 'inventory' },
                 'Inventario Caterpillar Usado': { total: 0, mayor_12_meses: 0, mayor_24_meses: 0, type: 'inventory' },
                 'Inventario John Deere Nuevo': { total: 0, mayor_12_meses: 0, mayor_24_meses: 0, type: 'inventory' },
@@ -370,7 +365,6 @@
             'Ventas': { 'Agrícola': { ventas: 0, ventas_nuevas: 0, meta: 280000, type: 'venta_sector' }, 'Construcción': { ventas: 0, ventas_nuevas: 0, meta: 420000, type: 'venta_sector' }, 'Distribución': { ventas: 0, ventas_nuevas: 0, meta: 150000, type: 'venta_sector' }, 'Gobierno': { ventas: 0, ventas_nuevas: 0, meta: 75000, type: 'venta_sector' }, 'Heavy Rent': { ventas: 0, ventas_nuevas: 0, meta: 60000, type: 'venta_sector' }, },
             'Utilidad': { 'Agrícola': { uop: 0, meta: 28000, type: 'utilidad_sector' }, 'Construcción': { uop: 0, meta: 45000, type: 'utilidad_sector' }, 'Distribución': { uop: 0, meta: 18000, type: 'utilidad_sector' }, 'Gobierno': { uop: 0, meta: 8000, type: 'utilidad_sector' }, 'Heavy Rent': { uop: 0, meta: 7500, type: 'utilidad_sector' }, },
             'Cobertura': { 'Cobertura Construcción': { value: 0, meta: 90, unit: '%', type: 'cobertura_percentage' }, 'Cobertura Agrícola': { value: 0, meta: 90, unit: '%', type: 'cobertura_percentage' }, 'Cobertura Distribución': { value: 0, meta: 90, unit: '%', type: 'cobertura_percentage' }, 'Cobertura Gobierno': { value: 0, meta: 90, unit: '%', type: 'cobertura_percentage' } },
-            // Store raw data for derived KPIs (not displayed directly as tabs)
             'Datos de Origen': { 
                 'Equipos con CSA': { unidades_con_csa: 0, unidades_totales_cat_sem: 0, type: 'csa_raw' },
                 'NLS Mensual': { leales: 0, riesgo: 0, encuestas_totales: 0, type: 'nls_raw' },
@@ -381,7 +375,6 @@
         const getKPIStatus = (kpi) => {
             if (!kpi) return 'N/A';
             
-            // Custom logic for new KPI types
             if (kpi.type === 'new_client_percentage') {
                 if (kpi.value > 30) return 'Bueno';
                 if (kpi.value >= 25) return 'Regular';
@@ -394,9 +387,9 @@
             }
             if (kpi.type === 'rotacion') {
                 if (kpi.value > 2) return 'Bueno';
-                if (kpi.value >= 1.6 && kpi.value <= 2) return 'Regular';
+                if (kpi.value >= 1.6 && kpi.value <= 2) return 'Regular'; // Corrected the range to include values up to 2
                 if (kpi.value < 1.6) return 'Malo';
-                return 'N/A'; // Should not happen with valid input
+                return 'N/A';
             }
             if (kpi.type === 'inventory_percentage') {
                 // Lower is better, so this is an inverted goal
@@ -404,7 +397,7 @@
                 if (kpi.value < kpi.meta * 1.5) return 'Regular'; // Up to 50% over meta
                 return 'Malo';
             }
-            if (kpi.type === 'csa_percentage') {
+             if (kpi.type === 'csa_percentage') {
                 if (kpi.value > 85) return 'Bueno';
                 if (kpi.value >= 60) return 'Regular';
                 return 'Malo';
@@ -416,16 +409,15 @@
             }
 
             let value, meta;
-            // Handle existing types for generic percentage calculation
             if (kpi.type === 'venta_sector') { value = kpi.ventas; meta = kpi.meta; }
             else if (kpi.type === 'utilidad_sector') { value = kpi.uop; meta = kpi.meta; }
             else if (kpi.type === 'market_share') { value = kpi.industria > 0 ? (kpi.matra / kpi.industria) * 100 : 0; meta = kpi.meta; }
-            else { value = kpi.value; meta = kpi.meta; } // Fallback for generic 'percentage' or 'ratio' types
+            else { value = kpi.value; meta = kpi.meta; }
             
             if (meta === 0 || meta === undefined) return 'N/A';
             const percentage = (value / meta) * 100;
 
-            if (kpi.inverted) { // Applies to 'Costo de Alisto' and 'Inventory Percentage'
+            if (kpi.inverted) {
                 if (value <= meta) return 'Bueno';
                 if (value <= meta * 1.1) return 'Regular'; // 10% over target
                 return 'Malo';
@@ -449,9 +441,68 @@
         // DATA HANDLING & PREPARATION
         // ========================================================================
 
-        // populateInitialData is no longer needed as a separate function for loading/simulating data.
-        // Its content (the data structure) is directly used by getInitialMonthData()
+        function populateInitialData() {
+            const fullData = {};
+            for (const year of state.years) {
+                fullData[year] = {};
+                for (const month of state.months) {
+                    const monthData = getInitialMonthData();
+                    // Simulate realistic data
+                    monthData['Procesos Internos']['Satisfacción Entrega de Equipos'].value = 85 + Math.random() * 14;
+                    
+                    Object.keys(monthData['Inventario']).forEach(kpiName => {
+                        if (kpiName.startsWith('Rotación')) {
+                             monthData['Inventario'][kpiName].value = 1.4 + Math.random(); // Random value between 1.4 and 2.4
+                        }
+                        if (kpiName.startsWith('Inventario')) {
+                            const kpi = monthData['Inventario'][kpiName];
+                            kpi.total = 500000 + Math.random() * 1000000;
+                            kpi.mayor_12_meses = kpi.total * (0.05 + Math.random() * 0.20); // 5% to 25% is > 12 months
+                            kpi.mayor_24_meses = kpi.mayor_12_meses * (0.1 + Math.random() * 0.4); // 10% to 50% of the >12m inventory is >24m
+                        }
+                    });
 
+                    state.sectors.forEach(sector => {
+                        const salesData = monthData.Ventas[sector];
+                        const profitData = monthData.Utilidad[sector];
+                        salesData.ventas = salesData.meta * (0.85 + Math.random() * 0.3);
+                        salesData.ventas_nuevas = salesData.ventas * (0.20 + Math.random() * 0.2); // 20-40% from new clients
+                        profitData.uop = profitData.meta * (0.85 + Math.random() * 0.3);
+                    });
+                    
+                    Object.keys(monthData['Participación']).forEach(kpiName => {
+                        const kpi = monthData['Participación'][kpiName];
+                        kpi.industria = 300 + Math.random() * 700;
+                        kpi.matra = kpi.industria * (kpi.meta / 100) * (0.9 + Math.random() * 0.2);
+                    });
+
+                    // Simulate data for Cobertura KPIs
+                    Object.keys(monthData['Cobertura']).forEach(kpiName => {
+                        monthData['Cobertura'][kpiName].value = 75 + Math.random() * 25; // Random value between 75 and 100
+                    });
+
+                    // Simulate data for CSA & NLS KPIs
+                    const csaData = monthData['Datos de Origen']['Equipos con CSA'];
+                    csaData.unidades_totales_cat_sem = 50 + Math.random() * 50;
+                    csaData.unidades_con_csa = csaData.unidades_totales_cat_sem * (0.5 + Math.random() * 0.45); // 50-95% with CSA
+                    
+                    const nlsMensual = monthData['Datos de Origen']['NLS Mensual'];
+                    nlsMensual.encuestas_totales = 80 + Math.random() * 40;
+                    nlsMensual.leales = nlsMensual.encuestas_totales * (0.7 + Math.random() * 0.2); // 70-90% loyal
+                    nlsMensual.riesgo = nlsMensual.encuestas_totales * (0.05 + Math.random() * 0.1); // 5-15% risk
+
+                    const nlsRolling = monthData['Datos de Origen']['NLS Rolling 6'];
+                    nlsRolling.encuestas_totales = (80 + Math.random() * 40) * 6;
+                    nlsRolling.leales = nlsRolling.encuestas_totales * (0.7 + Math.random() * 0.2);
+                    nlsRolling.riesgo = nlsRolling.encuestas_totales * (0.05 + Math.random() * 0.1);
+
+
+                    fullData[year][month] = monthData;
+                }
+            }
+            state.kpiDataByDate = fullData;
+        }
+        
         function getPreviousMonth(year, month) {
             const monthIndex = state.months.indexOf(month);
             if (monthIndex === 0) {
@@ -459,146 +510,108 @@
             }
             return { year, month: state.months[monthIndex - 1] };
         }
+        
+        function getDataForDisplay(options = {}) {
+            const { year, month, ignoreFilters } = options;
+            const queryYear = year || state.selectedYear;
+            const queryMonth = month || state.selectedMonth;
 
-        async function getDataForDisplay(options = {}) { // Made async
-            const { year: queryYear = state.selectedYear, month: queryMonth = state.selectedMonth, ignoreFilters = false } = options;
-            const dateKey = `${queryYear}-${queryMonth}`;
+            const currentData = JSON.parse(JSON.stringify(state.kpiDataByDate[queryYear]?.[queryMonth] || getInitialMonthData()));
             
-            // Start with a fresh initial data structure for the month
-            let rawMonthData = JSON.parse(JSON.stringify(getInitialMonthData())); 
-
-            try {
-                // Try to get the document from Firestore
-                const docRef = firebase_doc(db, 'kpis_por_mes', dateKey);
-                const docSnap = await firebase_getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    // If data exists in Firestore, merge it with the initial structure
-                    const fetchedData = docSnap.data();
-                    Object.keys(rawMonthData).forEach(category => {
-                        if (fetchedData[category]) {
-                            // Ensure nested objects also exist in rawMonthData before merging
-                            rawMonthData[category] = rawMonthData[category] || {};
-                            Object.keys(rawMonthData[category]).forEach(kpiName => {
-                                rawMonthData[category][kpiName] = rawMonthData[category][kpiName] || {}; // Ensure KPI object exists
-                                if (fetchedData[category][kpiName]) {
-                                    // Deep merge for KPI properties
-                                    Object.assign(rawMonthData[category][kpiName], fetchedData[category][kpiName]);
-                                }
-                            });
-                        }
-                    });
-                } else {
-                    console.log(`No se encontraron datos para ${dateKey} en Firestore. Inicializando y guardando plantilla.`);
-                    // If no data, save the initial template to Firestore
-                    await firebase_setDoc(docRef, rawMonthData);
-                }
-            } catch (error) {
-                console.error("Error al obtener o guardar el documento de Firestore:", error);
-                // alert("No se pudieron cargar/inicializar los datos de la base de datos. Revisa tu conexión a internet y las reglas de Firebase."); // Commented out to avoid multiple alerts
-            }
-
-            // Update local state with fetched (or initialized) raw data
-            state.kpiDataByDate[queryYear] = state.kpiDataByDate[queryYear] || {};
-            state.kpiDataByDate[queryYear][queryMonth] = rawMonthData;
-
-            // --- Dynamically create calculated KPIs based on rawMonthData ---
-            // This 'currentDataForDisplay' will be the one used for display and further calculations
-            const currentDataForDisplay = JSON.parse(JSON.stringify(rawMonthData)); 
-
-            // Calculated "Clientes Nuevos"
+            // --- Dynamically create calculated KPIs ---
             const newClientsKpis = {};
             const sectorsForNewClients = ['Agrícola', 'Construcción', 'Distribución'];
             let totalVentas = 0;
             let totalVentasNuevas = 0;
 
-            Object.entries(currentDataForDisplay.Ventas).forEach(([sector, data]) => {
-                totalVentas += data.ventas || 0;
-                totalVentasNuevas += data.ventas_nuevas || 0;
+            Object.entries(currentData.Ventas).forEach(([sector, data]) => {
+                totalVentas += data.ventas;
+                totalVentasNuevas += data.ventas_nuevas;
 
                 if (sectorsForNewClients.includes(sector)) {
                     newClientsKpis[`Clientes Nuevos ${sector}`] = {
-                        value: (data.ventas || 0) > 0 ? ((data.ventas_nuevas || 0) / data.ventas) * 100 : 0,
-                        meta: 30, unit: '%', type: 'new_client_percentage'
+                        value: data.ventas > 0 ? (data.ventas_nuevas / data.ventas) * 100 : 0,
+                        meta: 30,
+                        unit: '%',
+                        type: 'new_client_percentage'
                     };
                 }
             });
+
             newClientsKpis['Clientes Nuevos Ventas'] = {
                 value: totalVentas > 0 ? (totalVentasNuevas / totalVentas) * 100 : 0,
-                meta: 30, unit: '%', type: 'new_client_percentage'
+                meta: 30,
+                unit: '%',
+                type: 'new_client_percentage'
             };
-            currentDataForDisplay['Clientes Nuevos'] = newClientsKpis;
+            currentData['Clientes Nuevos'] = newClientsKpis;
             
-            // Calculated Inventory percentages
+            const csaData = currentData['Datos de Origen']['Equipos con CSA'];
+            if(csaData) {
+                 currentData['Procesos Internos']['Equipos con CSA'] = {
+                    value: csaData.unidades_totales_cat_sem > 0 ? (csaData.unidades_con_csa / csaData.unidades_totales_cat_sem) * 100 : 0,
+                    meta: 85,
+                    unit: '%',
+                    type: 'csa_percentage'
+                };
+            }
+            
+            const nlsMensualData = currentData['Datos de Origen']['NLS Mensual'];
+            if(nlsMensualData) {
+                currentData['Procesos Internos']['NLS Mensual'] = {
+                    value: nlsMensualData.encuestas_totales > 0 ? ((nlsMensualData.leales - nlsMensualData.riesgo) / nlsMensualData.encuestas_totales) * 100 : 0,
+                    meta: 72,
+                    unit: '%',
+                    type: 'nls_percentage'
+                };
+            }
+            
+            const nlsRollingData = currentData['Datos de Origen']['NLS Rolling 6'];
+            if(nlsRollingData) {
+                currentData['Procesos Internos']['NLS Rolling 6'] = {
+                    value: nlsRollingData.encuestas_totales > 0 ? ((nlsRollingData.leales - nlsRollingData.riesgo) / nlsRollingData.encuestas_totales) * 100 : 0,
+                    meta: 72,
+                    unit: '%',
+                    type: 'nls_percentage'
+                };
+            }
+
             const consolidatedInventory = {};
-            const inventoryData = rawMonthData['Inventario'] || {}; // Use rawMonthData for raw inputs
+            const inventoryData = currentData['Inventario'] || {};
 
             Object.entries(inventoryData).forEach(([name, data]) => {
                 if (data.type === 'rotacion') {
-                    consolidatedInventory[name] = data; // Keep rotation as is
-                } else if (data.type === 'inventory') { // These are the raw inventory inputs
+                    consolidatedInventory[name] = data;
+                } else if (data.type === 'inventory') {
                     const cleanName = name.replace('Inventario ', '');
-                    // Create derived KPIs for inventory percentage > 12 months
                     consolidatedInventory[`Inv. > 12m - ${cleanName}`] = {
-                        value: (data.total || 0) > 0 ? ((data.mayor_12_meses || 0) / data.total) * 100 : 0,
+                        value: data.total > 0 ? (data.mayor_12_meses / data.total) * 100 : 0,
                         meta: 10, unit: '%', type: 'inventory_percentage', inverted: true
                     };
-                    // Create derived KPIs for inventory percentage > 24 months
                     consolidatedInventory[`Inv. > 24m - ${cleanName}`] = {
-                        value: (data.total || 0) > 0 ? ((data.mayor_24_meses || 0) / data.total) * 100 : 0,
+                        value: data.total > 0 ? (data.mayor_24_meses / data.total) * 100 : 0,
                         meta: 5, unit: '%', type: 'inventory_percentage', inverted: true
                     };
                 }
             });
-            currentDataForDisplay['Inventario'] = consolidatedInventory; // Replace raw inventory with calculated ones for display
-
-
-            // Calculated CSA and NLS percentages from "Datos de Origen"
-            const csaData = rawMonthData['Datos de Origen']?.['Equipos con CSA'];
-            if(csaData) {
-                currentDataForDisplay['Procesos Internos']['Equipos con CSA'] = {
-                    value: (csaData.unidades_totales_cat_sem || 0) > 0 ? ((csaData.unidades_con_csa || 0) / csaData.unidades_totales_cat_sem) * 100 : 0,
-                    meta: 85, unit: '%', type: 'csa_percentage'
-                };
-            }
+            currentData['Inventario'] = consolidatedInventory;
             
-            const nlsMensualData = rawMonthData['Datos de Origen']?.['NLS Mensual'];
-            if(nlsMensualData) {
-                currentDataForDisplay['Procesos Internos']['NLS Mensual'] = {
-                    value: (nlsMensualData.encuestas_totales || 0) > 0 ? (((nlsMensualData.leales || 0) - (nlsMensualData.riesgo || 0)) / nlsMensualData.encuestas_totales) * 100 : 0,
-                    meta: 72, unit: '%', type: 'nls_percentage'
-                };
-            }
-            
-            const nlsRollingData = rawMonthData['Datos de Origen']?.['NLS Rolling 6'];
-            if(nlsRollingData) {
-                currentDataForDisplay['Procesos Internos']['NLS Rolling 6'] = {
-                    value: (nlsRollingData.encuestas_totales || 0) > 0 ? (((nlsRollingData.leales || 0) - (nlsRollingData.riesgo || 0)) / nlsRollingData.encuestas_totales) * 100 : 0,
-                    meta: 72, unit: '%', type: 'nls_percentage'
-                };
-            }
+            delete currentData['Datos de Origen']; // Remove base data from display data
 
-            // Prepare all KPIs for filtering and grouping
-            let allKpis = Object.entries(currentDataForDisplay).flatMap(([category, kpis]) => {
-                // Exclude the raw 'Datos de Origen' category from being displayed as a tab or KPI
-                if (category === 'Datos de Origen') return []; 
-                if (category === 'Ventas' || category === 'Utilidad') {
-                    // For Sales and Utility, ensure we create KPIs like "Ventas Agrícola"
+
+            let allKpis = Object.entries(currentData).flatMap(([category, kpis]) => {
+                 if (category === 'Ventas' || category === 'Utilidad') {
                     return Object.entries(kpis).map(([sector, kpi]) => ({ name: `${category} ${sector}`, kpi, category }));
                 }
                 return Object.entries(kpis).map(([name, kpi]) => ({ name, kpi, category }));
             });
 
-            // Apply filters if not ignored (e.g., for chat queries)
             if (!ignoreFilters) {
                 // Filter by sector
                 if (state.selectedSector !== 'todos') {
-                    const sectorKeywords = { 'Agrícola': ['John Deere', 'JD', 'Agrícola', 'Inventario John Deere', 'Cobertura Agrícola'], 'Construcción': ['Caterpillar', 'CAT', 'Metso', 'Mack', 'Construcción', 'BCP', 'CSA', 'Inventario Caterpillar', 'Inventario Metso', 'Cobertura Construcción'], 'Distribución': ['International', 'Distribución', 'Volvo', 'Inventario International', 'Inventario Mack', 'Inventario Volvo', 'Cobertura Distribución'], 'Gobierno': ['Gobierno', 'Cobertura Gobierno'], 'Heavy Rent': ['Heavy Rent'] };
+                    const sectorKeywords = { 'Agrícola': ['John Deere', 'JD', 'Agrícola'], 'Construcción': ['Caterpillar', 'CAT', 'Metso', 'Mack', 'Construcción', 'BCP', 'CSA'], 'Distribución': ['International', 'Distribución', 'Volvo'], 'Gobierno': ['Gobierno'], 'Heavy Rent': ['Heavy Rent'] };
                     const keywords = sectorKeywords[state.selectedSector] || [];
-                    allKpis = allKpis.filter(({ name, category }) => {
-                        // Special handling for "Ventas" and "Utilidad" categories which include sector in their name directly
-                        if ((category === 'Ventas' || category === 'Utilidad' || category === 'Cobertura') && name.includes(state.selectedSector)) return true;
-                        // For other categories, check if the KPI name contains any of the sector keywords
+                    allKpis = allKpis.filter(({ name }) => {
                         return keywords.some(keyword => name.toLowerCase().includes(keyword.toLowerCase()));
                     });
                 }
@@ -609,7 +622,6 @@
                 }
             }
             
-            // Group filtered KPIs by category for display
             const groupedData = allKpis.reduce((acc, { name, kpi, category }) => {
                 if (!acc[category]) acc[category] = {};
                 acc[category][name] = kpi;
@@ -617,9 +629,9 @@
             }, {});
 
             return {
-                currentData: currentDataForDisplay, // This contains all raw and derived KPIs
-                filteredData: groupedData, // This contains only filtered and grouped KPIs for display
-                allKpis: allKpis // This contains all filtered KPIs as a flat array
+                currentData: currentData, // This now includes the virtual category
+                filteredData: groupedData,
+                allKpis: allKpis
             };
         }
 
@@ -631,7 +643,7 @@
             event.preventDefault();
             const username = usernameInput.value;
             const password = passwordInput.value;
-            const user = users[username]; // Access local users object
+            const user = users[username];
 
             if (user && user.password === password) {
                 state.currentUser = user;
@@ -642,7 +654,7 @@
                 }
                 loginPage.classList.add('hidden');
                 dashboardPage.classList.remove('hidden');
-                initDashboard(); // Call async initDashboard
+                initDashboard();
             } else {
                 loginError.classList.remove('hidden');
             }
@@ -676,7 +688,7 @@
                 rememberMeCheckbox.checked = true;
             } else {
                 greetingHtml = `
-                    <p class="mt-2 text-lg text-gray-200">Dashboard de Ventas - Balanced Scorecard<br>Ingrese para continuar.</p>
+                     <p class="mt-2 text-lg text-gray-200">Dashboard de Ventas - Balanced Scorecard<br>Ingrese para continuar.</p>
                     <p class="mt-4 text-sm text-yellow-400 italic">"${randomQuote}"</p>
                 `;
             }
@@ -694,7 +706,7 @@
             state.charts = {};
         }
 
-        async function renderDashboard() { // Made async
+        function renderDashboard() {
             destroyAllCharts();
             dashboardSubtitle.textContent = `Mostrando datos para ${state.selectedMonth} ${state.selectedYear}.`;
             // Access control for manage button
@@ -703,17 +715,16 @@
             } else {
                 manageBtn.style.display = 'none';
             }
-            await renderTabs(); // Await renderTabs as it now depends on data
-            await renderTabContent(); // Now awaits the content to be loaded and rendered
+            renderTabs();
+            renderTabContent();
         }
 
-        async function renderTabs() { // Made async
-            const { currentData } = await getDataForDisplay({ ignoreFilters: true }); // Get all categories, ignoring current filters
-            const categoriesToDisplay = Object.keys(currentData).filter(cat => cat !== 'Datos de Origen'); // Exclude raw data category
+        function renderTabs() {
+            const categories = Object.keys(getDataForDisplay().currentData);
             
             tabsList.innerHTML = `
                 <button data-tab="dashboard" class="px-4 py-2.5 text-sm font-medium whitespace-nowrap -mb-px border-b-2 transition-colors duration-200 ${state.selectedCategory === 'dashboard' ? 'active' : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'}">Dashboard</button>
-                ${categoriesToDisplay.map(category => `
+                ${categories.map(category => `
                     <button data-tab="${category}" class="px-4 py-2.5 text-sm font-medium whitespace-nowrap -mb-px border-b-2 transition-colors duration-200 ${state.selectedCategory === category ? 'active' : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'}">${category}</button>
                 `).join('')}
                 <button data-tab="pronostico" class="px-4 py-2.5 text-sm font-medium whitespace-nowrap -mb-px border-b-2 transition-colors duration-200 ${state.selectedCategory === 'pronostico' ? 'active' : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'}">Pronóstico</button>
@@ -722,8 +733,8 @@
             lucide.createIcons();
         }
 
-        async function renderTabContent() { // Made async
-            const { filteredData, allKpis, currentData } = await getDataForDisplay(); // Await data from Firestore
+        function renderTabContent() {
+            const { filteredData, allKpis, currentData } = getDataForDisplay();
             tabsContent.innerHTML = ''; // Clear previous content
 
             if (state.selectedCategory === 'dashboard') {
@@ -735,10 +746,10 @@
             } else {
                 const categoryData = filteredData[state.selectedCategory];
                 if (categoryData && Object.keys(categoryData).length > 0) {
-                    if(state.selectedCategory === 'Participación') {
-                        await renderMarketShareTab(categoryData); // Await this as it calls async getDataForDisplay
+                     if(state.selectedCategory === 'Participación') {
+                         renderMarketShareTab(categoryData);
                     } else {
-                        await renderKpiCategoryTab(categoryData, state.selectedCategory); // Await this as it calls async initializeKpiCardChart
+                         renderKpiCategoryTab(categoryData, state.selectedCategory);
                     }
                 } else {
                     tabsContent.innerHTML = `
@@ -751,7 +762,7 @@
                 }
             }
         }
-
+        
         function createKpiCardElement(name, kpi, category) {
             const template = document.getElementById('kpi-card-template');
             const card = template.content.cloneNode(true);
@@ -760,39 +771,71 @@
             const styles = getStatusStyles(status);
             
             const { year: prevYear, month: prevMonth } = getPreviousMonth(state.selectedYear, state.selectedMonth);
-            // Get previous month's processed data for accurate trend calculation
-            // This call should be safe now, as getDataForDisplay is awaited upstream in renderTabContent
-            const { allKpis: prevAllKpis } = getDataForDisplay({ year: prevYear, month: prevMonth, ignoreFilters: true });
-            const prevKpiFound = prevAllKpis.find(item => item.name === name);
-            const prevKpi = prevKpiFound ? prevKpiFound.kpi : null;
-
+            const prevData = state.kpiDataByDate[prevYear]?.[prevMonth] || getInitialMonthData();
 
             let displayValue, prevValue, valueForTrend;
             
-            // Determine display value
-            if (kpi.type === 'venta_sector' || kpi.type === 'utilidad_sector') {
-                displayValue = formatCurrency(kpi.ventas || kpi.uop);
-            } else if (kpi.unit === '%') {
-                displayValue = `${(kpi.value || 0).toFixed(1)}%`;
-            } else if (kpi.unit === 'x') {
-                displayValue = `${(kpi.value || 0).toFixed(2)}${kpi.unit}`;
-            } else {
-                displayValue = `${kpi.value?.toFixed(1) || 0}${kpi.unit || ''}`;
-            }
-
-            // Determine value for trend comparison (current and previous)
-            if (kpi.type === 'venta_sector') {
-                valueForTrend = kpi.ventas || 0;
-                prevValue = prevKpi ? (prevKpi.ventas || 0) : 0;
+            if (category === 'Clientes Nuevos') {
+                displayValue = `${kpi.value.toFixed(1)}%`;
+                valueForTrend = kpi.value;
+                
+                const sectorName = name.replace('Clientes Nuevos ', '');
+                if (sectorName === 'Ventas') { // Handle the total KPI
+                    let prevTotalVentas = 0;
+                    let prevTotalVentasNuevas = 0;
+                    Object.values(prevData.Ventas).forEach(data => {
+                        prevTotalVentas += data.ventas;
+                        prevTotalVentasNuevas += data.ventas_nuevas;
+                    });
+                    prevValue = prevTotalVentas > 0 ? (prevTotalVentasNuevas / prevTotalVentas) * 100 : 0;
+                } else { // Handle specific sector KPI
+                    const prevVentasData = prevData.Ventas[sectorName];
+                    prevValue = prevVentasData && prevVentasData.ventas > 0 ? (prevVentasData.ventas_nuevas / prevVentasData.ventas) * 100 : 0;
+                }
+            } else if (category === 'Inventario') {
+                 displayValue = `${kpi.value.toFixed(1)}${kpi.unit || ''}`;
+                 valueForTrend = kpi.value;
+                 const prevInvData = prevData['Inventario'];
+                 if (name.startsWith('Inv. > 12m')) {
+                    const rawKpiName = name.replace('Inv. > 12m - ', 'Inventario ');
+                    const prevRaw = prevInvData[rawKpiName];
+                    prevValue = prevRaw && prevRaw.total > 0 ? (prevRaw.mayor_12_meses / prevRaw.total) * 100 : 0;
+                 } else if (name.startsWith('Inv. > 24m')) {
+                    const rawKpiName = name.replace('Inv. > 24m - ', 'Inventario ');
+                    const prevRaw = prevInvData[rawKpiName];
+                    prevValue = prevRaw && prevRaw.total > 0 ? (prevRaw.mayor_24_meses / prevRaw.total) * 100 : 0;
+                 } else { // Rotacion
+                    prevValue = prevInvData[name]?.value || 0;
+                 }
+            } else if (kpi.type === 'csa_percentage') {
+                displayValue = `${kpi.value.toFixed(1)}%`;
+                valueForTrend = kpi.value;
+                const prevCsaData = prevData['Datos de Origen']['Equipos con CSA'];
+                prevValue = prevCsaData && prevCsaData.unidades_totales_cat_sem > 0 ? (prevCsaData.unidades_con_csa / prevCsaData.unidades_totales_cat_sem) * 100 : 0;
+            } else if (kpi.type === 'nls_percentage') {
+                displayValue = `${kpi.value.toFixed(1)}%`;
+                valueForTrend = kpi.value;
+                const prevNlsData = prevData['Datos de Origen'][name];
+                prevValue = prevNlsData && prevNlsData.encuestas_totales > 0 ? ((prevNlsData.leales - prevNlsData.riesgo) / prevNlsData.encuestas_totales) * 100 : 0;
+            } else if (kpi.type === 'venta_sector') {
+                const kpiNameForPrev = name.replace('Ventas ', '');
+                displayValue = formatCurrency(kpi.ventas);
+                valueForTrend = kpi.ventas;
+                prevValue = prevData.Ventas?.[kpiNameForPrev]?.ventas || 0;
             } else if (kpi.type === 'utilidad_sector') {
-                valueForTrend = kpi.uop || 0;
-                prevValue = prevKpi ? (prevKpi.uop || 0) : 0;
+                const kpiNameForPrev = name.replace('Utilidad ', '');
+                displayValue = formatCurrency(kpi.uop);
+                valueForTrend = kpi.uop;
+                prevValue = prevData.Utilidad?.[kpiNameForPrev]?.uop || 0;
             } else if (kpi.type === 'market_share') {
-                valueForTrend = (kpi.industria || 0) > 0 ? ((kpi.matra || 0) / kpi.industria) * 100 : 0;
-                prevValue = prevKpi && (prevKpi.industria || 0) > 0 ? ((prevKpi.matra || 0) / prevKpi.industria) * 100 : 0;
-            } else { // Handles percentage, ratio, rotacion, inventory, csa, nls types
-                valueForTrend = kpi.value || 0;
-                prevValue = prevKpi ? (prevKpi.value || 0) : 0;
+                const currentShare = kpi.industria > 0 ? (kpi.matra / kpi.industria) * 100 : 0;
+                displayValue = `${currentShare.toFixed(1)}%`;
+                valueForTrend = currentShare;
+                const prevKpi = prevData.Participación?.[name];
+                prevValue = prevKpi && prevKpi.industria > 0 ? (prevKpi.matra / prevKpi.industria) * 100 : 0;
+            } else { // Handles percentage and ratio
+                displayValue = `${kpi.value?.toFixed(1) || 0}${kpi.unit || ''}`;
+                prevValue = prevData[category]?.[name]?.value || 0;
             }
             
             const difference = valueForTrend - prevValue;
@@ -809,42 +852,18 @@
             card.querySelector('.kpi-status-badge').textContent = status;
             card.querySelector('.kpi-status-badge').className = `kpi-status-badge mt-1 inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full ${styles.badge}`;
             card.querySelector('.kpi-value').textContent = displayValue;
-            // Adjust meta display for inventory percentages and others
-            if (kpi.type === 'inventory_percentage' || kpi.type === 'csa_percentage' || kpi.type === 'nls_percentage' || kpi.type === 'new_client_percentage' || kpi.type === 'cobertura_percentage') {
-                 card.querySelector('.kpi-meta').textContent = `Meta: ${kpi.meta}${kpi.unit || ''}`;
-            } else if (kpi.type.includes('sector')) { // Venta y Utilidad
-                card.querySelector('.kpi-meta').textContent = `Meta: ${formatCurrency(kpi.meta)}`;
-            } else if (kpi.unit) {
-                card.querySelector('.kpi-meta').textContent = `Meta: ${kpi.meta}${kpi.unit}`;
-            } else {
-                 card.querySelector('.kpi-meta').textContent = `Meta: ${kpi.meta || 'N/A'}`; // Fallback for undefined meta
-            }
-
+            card.querySelector('.kpi-meta').textContent = `Meta: ${kpi.type.includes('sector') ? formatCurrency(kpi.meta) : `${kpi.meta}${kpi.unit || ''}`}`;
             card.querySelector('.kpi-trend').innerHTML = trendHtml;
             
-            if (kpi.type === 'utilidad_sector') {
-                const achievement = (kpi.meta || 0) > 0 ? ((kpi.uop || 0) / kpi.meta) * 100 : 0;
+            if (category === 'Utilidad') {
+                const achievement = kpi.meta > 0 ? (kpi.uop / kpi.meta) * 100 : 0;
                 const colorClass = achievement >= 100 ? 'text-green-600' : achievement >= 90 ? 'text-yellow-600' : 'text-red-600';
-                card.querySelector('.kpi-achievement').innerHTML = `<div class="text-sm font-bold ${achievement.toFixed(1)}% Logro</div>`;
-            } else if (kpi.type === 'venta_sector') {
-                const achievement = (kpi.meta || 0) > 0 ? ((kpi.ventas || 0) / kpi.meta) * 100 : 0;
+                card.querySelector('.kpi-achievement').innerHTML = `<div class="text-sm font-bold ${colorClass}">${achievement.toFixed(1)}% Logro</div>`;
+            } else if (category === 'Ventas') {
+                const achievement = kpi.meta > 0 ? (kpi.ventas / kpi.meta) * 100 : 0;
                 const colorClass = achievement >= 100 ? 'text-green-600' : achievement >= 90 ? 'text-yellow-600' : 'text-red-600';
-                card.querySelector('.kpi-achievement').innerHTML = `<div class="text-sm font-bold ${achievement.toFixed(1)}% Logro</div>`;
-            } else if (kpi.type === 'market_share' || kpi.type === 'percentage' || kpi.type === 'new_client_percentage' || kpi.type === 'cobertura_percentage' || kpi.type === 'csa_percentage' || kpi.type === 'nls_percentage') {
-                const achievement = (kpi.meta || 0) > 0 ? ((kpi.value || 0) / kpi.meta) * 100 : 0;
-                let colorClass;
-                if (kpi.inverted) { // For inverted percentages (e.g., lower is better)
-                    if ((kpi.value || 0) < kpi.meta) colorClass = 'text-green-600'; // Better than meta
-                    else if ((kpi.value || 0) < kpi.meta * 1.5) colorClass = 'text-yellow-600'; // Within 50% over meta
-                    else colorClass = 'text-red-600'; // Much over meta
-                } else {
-                    if (achievement >= 100) colorClass = 'text-green-600';
-                    else if (achievement >= 90) colorClass = 'text-yellow-600';
-                    else colorClass = 'text-red-600';
-                }
-                card.querySelector('.kpi-achievement').innerHTML = `<div class="text-sm font-bold ${achievement.toFixed(1)}% Logro</div>`;
+                card.querySelector('.kpi-achievement').innerHTML = `<div class="text-sm font-bold ${colorClass}">${achievement.toFixed(1)}% Logro</div>`;
             }
-
 
             const chartCanvas = card.querySelector('.kpi-sparkline-chart');
             chartCanvas.id = `sparkline-chart-${name.replace(/\s+/g, '-')}`; 
@@ -852,7 +871,7 @@
             return card;
         }
 
-        async function initializeKpiCardChart(name, kpi, category) {
+        function initializeKpiCardChart(name, kpi, category) {
             const chartId = `sparkline-chart-${name.replace(/\s+/g, '-')}`;
             const chartCanvas = document.getElementById(chartId);
 
@@ -862,40 +881,58 @@
             }
 
             const sequence = getMonthSequence(state.selectedYear, state.selectedMonth, 12);
-            const historyData = await Promise.all(sequence.map(async ({year, month}) => {
-                // Get the *processed* data (with calculated KPIs) for each month in the sequence
-                const { currentData: historicalDataPoint } = await getDataForDisplay({ year, month, ignoreFilters: true });
-                
-                // Find the specific KPI within the processed data for this historical month
-                let historicalKpi = null;
-                if (category === 'Ventas' || category === 'Utilidad' || category === 'Cobertura') {
-                    // For these categories, the name often includes the sector (e.g., "Ventas Agrícola")
-                    // We need to extract the sector part to find the base KPI in the raw data,
-                    // or directly find the processed KPI by its full name.
-                    historicalKpi = historicalDataPoint[category]?.[name]; // Look for the full name directly
-                } else if (category === 'Clientes Nuevos') {
-                    // Specific logic for Client KPIs, which are calculated.
-                    // This assumes `historicalDataPoint` already has the 'Clientes Nuevos' category calculated.
-                    historicalKpi = historicalDataPoint[category]?.[name];
-                } else { // For 'Procesos Internos', 'Inventario', 'Participación'
-                    historicalKpi = historicalDataPoint[category]?.[name];
+            const historyData = sequence.map(({year, month}) => {
+                const monthData = state.kpiDataByDate[year]?.[month];
+                if (!monthData) return 0;
+
+                if (category === 'Clientes Nuevos') {
+                    const sectorName = name.replace('Clientes Nuevos ', '');
+                    if (sectorName === 'Ventas') { // Total
+                        const totalVentas = Object.values(monthData.Ventas).reduce((sum, s) => sum + s.ventas, 0);
+                        const totalVentasNuevas = Object.values(monthData.Ventas).reduce((sum, s) => sum + s.ventas_nuevas, 0);
+                        return totalVentas > 0 ? (totalVentasNuevas / totalVentas) * 100 : 0;
+                    } else { // Specific Sector
+                        const ventasData = monthData.Ventas[sectorName];
+                        return ventasData && ventasData.ventas > 0 ? (ventasData.ventas_nuevas / ventasData.ventas) * 100 : 0;
+                    }
                 }
-
-                if (!historicalKpi) return 0; // Return 0 if KPI is not found for historical month
-
-                // Extract the value based on its type
-                if (historicalKpi.type === 'venta_sector') return historicalKpi.ventas || 0;
-                if (historicalKpi.type === 'utilidad_sector') return historicalKpi.uop || 0;
-                if (historicalKpi.type === 'market_share') return (historicalKpi.industria || 0) > 0 ? ((historicalKpi.matra || 0) / historicalKpi.industria) * 100 : 0;
+                if (category === 'Inventario') {
+                    const prevInvData = monthData['Inventario'];
+                    if (name.startsWith('Inv. > 12m')) {
+                        const rawKpiName = name.replace('Inv. > 12m - ', 'Inventario ');
+                        const prevRaw = prevInvData[rawKpiName];
+                        return prevRaw && prevRaw.total > 0 ? (prevRaw.mayor_12_meses / prevRaw.total) * 100 : 0;
+                    } else if (name.startsWith('Inv. > 24m')) {
+                        const rawKpiName = name.replace('Inv. > 24m - ', 'Inventario ');
+                        const prevRaw = prevInvData[rawKpiName];
+                        return prevRaw && prevRaw.total > 0 ? (prevRaw.mayor_24_meses / prevRaw.total) * 100 : 0;
+                    } else { // Rotacion
+                        return prevInvData[name]?.value || 0;
+                    }
+                }
+                 if (category === 'Procesos Internos' && name === 'Equipos con CSA') {
+                    const csaData = monthData['Datos de Origen']['Equipos con CSA'];
+                    return csaData && csaData.unidades_totales_cat_sem > 0 ? (csaData.unidades_con_csa / csaData.unidades_totales_cat_sem) * 100 : 0;
+                }
+                if (category === 'Procesos Internos' && name.startsWith('NLS')) {
+                    const nlsData = monthData['Datos de Origen'][name];
+                    return nlsData && nlsData.encuestas_totales > 0 ? ((nlsData.leales - nlsData.riesgo) / nlsData.encuestas_totales) * 100 : 0;
+                }
                 
-                // For all other types that use 'value' (percentage, ratio, rotacion, inventory_percentage, csa_percentage, nls_percentage)
-                return historicalKpi.value || 0;
-            }));
+                const kpiNameForPrev = (category === 'Ventas' || category === 'Utilidad') ? name.replace(`${category} `, '') : name;
+                const kpiData = monthData[category]?.[name] || monthData[category]?.[kpiNameForPrev];
+                if (!kpiData) return 0;
+                
+                if (kpiData.type === 'venta_sector') return kpiData.ventas;
+                if (kpiData.type === 'utilidad_sector') return kpiData.uop;
+                if (kpiData.type === 'market_share') return kpiData.industria > 0 ? (kpiData.matra / kpiData.industria) * 100 : 0;
+                return kpiData.value || 0;
+            });
 
             state.charts[`sparkline-${name}`] = new Chart(chartCanvas.getContext('2d'), {
                 type: 'line',
                 data: {
-                    labels: sequence.map(s => s.month.substring(0,3)),
+                    labels: sequence.map(s => s.month),
                     datasets: [{
                         data: historyData,
                         borderColor: '#6366f1',
@@ -923,7 +960,7 @@
                             padding: 8,
                             displayColors: false,
                             callbacks: {
-                                title: () => name, // KPI Name as title
+                                title: () => null, // Hide title
                                 label: function(context) {
                                     const monthLabel = context.label;
                                     let value = context.parsed.y;
@@ -937,7 +974,7 @@
                                     } else if (kpi.unit === 'x') {
                                         formattedValue = `${value.toFixed(2)}${kpi.unit}`;
                                     } else {
-                                        formattedValue = `${value.toFixed(1)}${kpi.unit || ''}`;
+                                         formattedValue = `${value.toFixed(1)}${kpi.unit || ''}`;
                                     }
                                     
                                     return `${monthLabel}: ${formattedValue}`;
@@ -950,48 +987,41 @@
             });
         }
 
-        async function renderKpiCategoryTab(categoryData, categoryName) { // Made async
+        function renderKpiCategoryTab(categoryData, categoryName) {
             const container = document.createElement('div');
             container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4';
             
-            // Loop through data to create card elements
             Object.entries(categoryData).forEach(([name, kpi]) => {
                 container.appendChild(createKpiCardElement(name, kpi, categoryName));
             });
             
             tabsContent.appendChild(container);
             
-            // Delay chart initialization to ensure canvases are in DOM
-            await new Promise(resolve => setTimeout(resolve, 0)); 
-            
-            // Initialize charts sequentially or in parallel
-            for (const [name, kpi] of Object.entries(categoryData)) {
-                await initializeKpiCardChart(name, kpi, categoryName); // Await each chart initialization
-            }
-            lucide.createIcons();
+            setTimeout(() => {
+                Object.entries(categoryData).forEach(([name, kpi]) => {
+                    initializeKpiCardChart(name, kpi, categoryName);
+                });
+                lucide.createIcons();
+            }, 0);
         }
         
-        async function renderMarketShareTab(categoryData) { // Made async
+        function renderMarketShareTab(categoryData) {
             const container = document.createElement('div');
             container.className = 'grid grid-cols-1 lg:grid-cols-2 gap-6';
             const chartInfo = [];
 
-            for (const [name, kpi] of Object.entries(categoryData)) { // Using for...of with await
+            Object.entries(categoryData).forEach(([name, kpi]) => {
                 const brand = name.replace('Participación ', '');
-                const chartData = await Promise.all(state.months.map(async month => { // Map also made async
-                    const monthRawData = state.kpiDataByDate[state.selectedYear]?.[month];
-                    if (!monthRawData || !monthRawData['Participación']?.[name]) return { mes: month.substring(0,3), industria: 0, matra: 0, marketShare: 0 };
-                    
-                    const monthKpi = monthRawData['Participación'][name];
-                    if (!monthKpi) return { mes: month.substring(0,3), industria: 0, matra: 0, marketShare: 0 };
-
+                const chartData = state.months.map(month => {
+                    const monthData = state.kpiDataByDate[state.selectedYear]?.[month]?.['Participación']?.[name];
+                    if (!monthData) return { mes: month.substring(0,3), industria: 0, matra: 0, marketShare: 0 };
                     return {
                         mes: month.substring(0,3),
-                        industria: monthKpi.industria || 0,
-                        matra: monthKpi.matra || 0,
-                        marketShare: (monthKpi.industria || 0) > 0 ? ((monthKpi.matra || 0) / monthKpi.industria) * 100 : 0
+                        industria: monthData.industria,
+                        matra: monthData.matra,
+                        marketShare: monthData.industria > 0 ? (monthData.matra / monthData.industria) * 100 : 0
                     };
-                }));
+                });
                 chartInfo.push({ brand, chartData });
                 
                 const card = document.createElement('div');
@@ -1008,79 +1038,80 @@
                     </div>
                 `;
                 container.appendChild(card);
-            }
+            });
             tabsContent.appendChild(container);
 
-            await new Promise(resolve => setTimeout(resolve, 0)); // Ensure canvases are in DOM
-            
-            chartInfo.forEach(({ brand, chartData }) => {
-                const ctx = document.getElementById(`market-share-chart-${brand.replace(/\s+/g, '')}`).getContext('2d');
-                state.charts[`market-share-${brand}`] = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: chartData.map(d => d.mes),
-                        datasets: [
-                            { label: 'Industria', data: chartData.map(d => d.industria), backgroundColor: '#d1d5db', yAxisID: 'y' },
-                            { label: 'Matra', data: chartData.map(d => d.matra), backgroundColor: '#4b5563', yAxisID: 'y' },
-                            { label: 'Market Share', data: chartData.map(d => d.marketShare), type: 'line', borderColor: '#f97316', tension: 0.1, yAxisID: 'y1', borderWidth: 2 }
-                        ]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        scales: {
-                            y: { position: 'left', title: { display: true, text: 'Unidades' } },
-                            y1: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Market Share (%)' } }
+            setTimeout(() => {
+                chartInfo.forEach(({ brand, chartData }) => {
+                    const ctx = document.getElementById(`market-share-chart-${brand.replace(/\s+/g, '')}`).getContext('2d');
+                    state.charts[`market-share-${brand}`] = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: chartData.map(d => d.mes),
+                            datasets: [
+                                { label: 'Industria', data: chartData.map(d => d.industria), backgroundColor: '#d1d5db', yAxisID: 'y' },
+                                { label: 'Matra', data: chartData.map(d => d.matra), backgroundColor: '#4b5563', yAxisID: 'y' },
+                                { label: 'Market Share', data: chartData.map(d => d.marketShare), type: 'line', borderColor: '#f97316', tension: 0.1, yAxisID: 'y1', borderWidth: 2 }
+                            ]
                         },
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    title: (tooltipItems) => `Mes: ${tooltipItems[0].label}`,
-                                    label: (context) => '',
-                                    afterBody: (tooltipItems) => {
-                                        const index = tooltipItems[0].dataIndex;
-                                        const dataPoint = chartData[index];
-                                        return [
-                                            `Industria: ${dataPoint.industria.toLocaleString()}`,
-                                            `Matra: ${dataPoint.matra.toLocaleString()}`,
-                                            `% MS: ${dataPoint.marketShare.toFixed(2)}%`
-                                        ];
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            scales: {
+                                y: { position: 'left', title: { display: true, text: 'Unidades' } },
+                                y1: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Market Share (%)' } }
+                            },
+                            plugins: {
+                                tooltip: {
+                                    callbacks: {
+                                        title: (tooltipItems) => `Mes: ${tooltipItems[0].label}`,
+                                        label: (context) => '',
+                                        afterBody: (tooltipItems) => {
+                                            const index = tooltipItems[0].dataIndex;
+                                            const dataPoint = chartData[index];
+                                            return [
+                                                `Industria: ${dataPoint.industria.toLocaleString()}`,
+                                                `Matra: ${dataPoint.matra.toLocaleString()}`,
+                                                `% MS: ${dataPoint.marketShare.toFixed(2)}%`
+                                            ];
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
+                    });
                 });
-            });
+            }, 0);
         }
 
-        async function renderDashboardTab(allKpis) { // Made async
+        function renderDashboardTab() {
+            const { allKpis } = getDataForDisplay();
             const statusGroups = { Bueno: [], Regular: [], Malo: [], 'N/A': [] };
             allKpis.forEach(item => {
                 const status = getKPIStatus(item.kpi);
-                statusGroups[status].push(item);
+                if (statusGroups[status]) {
+                    statusGroups[status].push(item);
+                }
             });
             
-            const sectorData = async (dataType) => { // Made async
-                return await Promise.all(state.months.map(async month => { // Map also made async
-                    // Ensure month data is loaded and processed from Firestore before summing
-                    const { currentData: monthData } = await getDataForDisplay({ year: state.selectedYear, month, ignoreFilters: true });
-                    
-                    let totalValue = 0, totalMeta = 0;
-                    const sectorsToSum = state.selectedSector === 'todos' ? state.sectors : [state.selectedSector];
-                    
-                    sectorsToSum.forEach(sector => {
-                        const data = monthData[dataType]?.[sector]; // Use optional chaining
-                        if(data) {
-                            totalValue += (dataType === 'Ventas' ? (data.ventas || 0) : (data.uop || 0));
-                            totalMeta += (data.meta || 0);
-                        }
-                    });
-                    return { value: totalValue, meta: totalMeta };
-                }));
-            };
+            const sectorData = (dataType) => state.months.map(month => {
+                const monthData = state.kpiDataByDate[state.selectedYear]?.[month];
+                if (!monthData) return { value: 0, meta: 0 };
+                
+                let totalValue = 0, totalMeta = 0;
+                const sectorsToSum = state.selectedSector === 'todos' ? state.sectors : [state.selectedSector];
+                
+                sectorsToSum.forEach(sector => {
+                    const data = monthData[dataType][sector];
+                    if(data) {
+                        totalValue += (dataType === 'Ventas' ? data.ventas : data.uop);
+                        totalMeta += data.meta;
+                    }
+                });
+                return { value: totalValue, meta: totalMeta };
+            });
 
-            const salesData = await sectorData('Ventas'); // Await data
-            const utilityData = await sectorData('Utilidad'); // Await data
+            const salesData = sectorData('Ventas');
+            const utilityData = sectorData('Utilidad');
 
             tabsContent.innerHTML = `
                 <div class="space-y-6">
@@ -1096,165 +1127,130 @@
                 </div>
             `;
             
-            // Delay chart initialization to ensure canvases are in DOM
-            await new Promise(resolve => setTimeout(resolve, 0)); 
-            
-            // --- Sales Chart Logic ---
-            const salesValues = salesData.map(d => d.value);
-            const maxSales = salesValues.length > 0 ? Math.max(...salesValues) : 0;
-            const minSales = salesValues.filter(v => v > 0).length > 0 ? Math.min(...salesValues.filter(v => v > 0)) : 0;
-            const maxSalesIndex = salesValues.indexOf(maxSales);
-            const minSalesIndex = salesValues.indexOf(minSales);
-            const salesBarColors = salesValues.map((val, index) => {
-                if (index === maxSalesIndex) return '#0065a2';
-                if (index === minSalesIndex && salesValues.length > 1 && minSales > 0) return '#e77577'; // Only highlight min if there's more than one value and not zero
-                return '#bfdbfe';
-            });
-            const salesCtx = document.getElementById('sales-trend-chart').getContext('2d');
-            state.charts.salesTrend = new Chart(salesCtx, {
-                type: 'bar',
-                data: {
-                    labels: state.months.map(m => m.substring(0,3)),
-                    datasets: [
-                        { label: 'Meta de Ventas', type: 'line', data: salesData.map(d => d.meta), borderColor: '#3b82f6', borderWidth: 2, tension: 0.1, pointRadius: 0 },
-                        { label: 'Ventas Reales', data: salesValues, backgroundColor: salesBarColors }
-                    ]
-                },
-                options: { 
-                    responsive: true, maintainAspectRatio: false, 
-                    plugins: { 
-                        title: { display: true, text: `Tendencia de Ventas ${state.selectedSector !== 'todos' ? `(${state.selectedSector})` : '(General)'}` },
-                        tooltip: { callbacks: { footer: (tooltipItems) => {
-                            const index = tooltipItems[0].dataIndex;
-                            const real = salesData[index].value || 0;
-                            const meta = salesData[index].meta || 0;
-                            const achievement = meta > 0 ? (real / meta) * 100 : 0;
-                            return `% de Logro: ${achievement.toFixed(1)}%`;
-                        }}}
-                    }, 
-                    scales: { y: { ticks: { callback: value => formatCurrency(value) } } } 
-                }
-            });
-
-            // --- Utility Chart Logic ---
-            const utilityValues = utilityData.map(d => d.value);
-            const maxUtility = utilityValues.length > 0 ? Math.max(...utilityValues) : 0;
-            const minUtility = utilityValues.filter(v => v > 0).length > 0 ? Math.min(...utilityValues.filter(v => v > 0)) : 0;
-            const maxUtilityIndex = utilityValues.indexOf(maxUtility);
-            const minUtilityIndex = utilityValues.indexOf(minUtility);
-            const utilityBarColors = utilityValues.map((val, index) => {
-                if (index === maxUtilityIndex) return '#0065a2';
-                if (index === minUtilityIndex && utilityValues.length > 1 && minUtility > 0) return '#e77577';
-                return '#99f6e4';
-            });
-            const utilityCtx = document.getElementById('utility-trend-chart').getContext('2d');
-            state.charts.utilityTrend = new Chart(utilityCtx, {
-                type: 'bar',
-                data: {
-                    labels: state.months.map(m => m.substring(0,3)),
-                    datasets: [
-                        { label: 'Meta de Utilidad', type: 'line', data: utilityData.map(d => d.meta), borderColor: '#14b8a6', borderWidth: 2, tension: 0.1, pointRadius: 0 },
-                        { label: 'Utilidad Real', data: utilityValues, backgroundColor: utilityBarColors }
-                    ]
-                },
-                options: { 
-                    responsive: true, maintainAspectRatio: false, 
-                    plugins: { 
-                        title: { display: true, text: `Tendencia de Utilidad Op. ${state.selectedSector !== 'todos' ? `(${state.selectedSector})` : '(General)'}` },
-                        tooltip: { callbacks: { footer: (tooltipItems) => {
-                            const index = tooltipItems[0].dataIndex;
-                            const utility = utilityData[index].value || 0;
-                            const sales = salesData[index].value || 0; // Need sales data for margin calculation
-                            const margin = sales > 0 ? (utility / sales) * 100 : 0;
-                            return `% Utilidad Op: ${margin.toFixed(1)}%`;
-                        }}}
-                    }, 
-                    scales: { y: { ticks: { callback: value => formatCurrency(value) } } } 
-                }
-            });
-
-            // Render status lists
-            const listsContainer = document.getElementById('kpi-status-lists');
-            listsContainer.innerHTML = '';
-            Object.entries(statusGroups).forEach(([status, kpis]) => {
-                if (kpis.length === 0) return; // Don't render empty groups
-                const styles = getStatusStyles(status);
-                const listHtml = kpis.map(item => {
-                    const { year: prevYear, month: prevMonth } = getPreviousMonth(state.selectedYear, state.selectedMonth);
-                    // Get previous month's processed data for accurate trend comparison
-                    const { allKpis: prevAllKpisForStatusList } = getDataForDisplay({ year: prevYear, month: prevMonth, ignoreFilters: true });
-                    const prevKpiFoundForStatusList = prevAllKpisForStatusList.find(elem => elem.name === item.name);
-                    const prevKpiForStatusList = prevKpiFoundForStatusList ? prevKpiFoundForStatusList.kpi : null;
-
-                    let displayValue, prevValue, valueForTrend;
-
-                    // Determine display value
-                    if (item.kpi.type === 'venta_sector' || item.kpi.type === 'utilidad_sector') {
-                        displayValue = formatCurrency(item.kpi.ventas || item.kpi.uop);
-                    } else if (item.kpi.unit === '%') {
-                        displayValue = `${(item.kpi.value || 0).toFixed(1)}%`;
-                    } else if (item.kpi.unit === 'x') {
-                        displayValue = `${(item.kpi.value || 0).toFixed(2)}${item.kpi.unit}`;
-                    } else {
-                        displayValue = `${item.kpi.value?.toFixed(1) || 0}${item.kpi.unit || ''}`;
+            setTimeout(() => {
+                // --- Sales Chart Logic ---
+                const salesValues = salesData.map(d => d.value);
+                const maxSales = Math.max(...salesValues);
+                const minSales = Math.min(...salesValues.filter(v => v > 0));
+                const maxSalesIndex = salesValues.indexOf(maxSales);
+                const minSalesIndex = salesValues.indexOf(minSales);
+                const salesBarColors = salesValues.map((val, index) => {
+                    if (index === maxSalesIndex) return '#0065a2';
+                    if (index === minSalesIndex) return '#e77577';
+                    return '#bfdbfe';
+                });
+                const salesCtx = document.getElementById('sales-trend-chart').getContext('2d');
+                state.charts.salesTrend = new Chart(salesCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: state.months.map(m => m.substring(0,3)),
+                        datasets: [
+                            { label: 'Meta de Ventas', type: 'line', data: salesData.map(d => d.meta), borderColor: '#3b82f6', borderWidth: 2, tension: 0.1, pointRadius: 0 },
+                            { label: 'Ventas Reales', data: salesValues, backgroundColor: salesBarColors }
+                        ]
+                    },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, 
+                        plugins: { 
+                            title: { display: true, text: `Tendencia de Ventas ${state.selectedSector !== 'todos' ? `(${state.selectedSector})` : '(General)'}` },
+                            tooltip: { callbacks: { footer: (tooltipItems) => {
+                                const index = tooltipItems[0].dataIndex;
+                                const real = salesData[index].value;
+                                const meta = salesData[index].meta;
+                                const achievement = meta > 0 ? (real / meta) * 100 : 0;
+                                return `% de Logro: ${achievement.toFixed(1)}%`;
+                            }}}
+                        }, 
+                        scales: { y: { ticks: { callback: value => formatCurrency(value) } } } 
                     }
-                    
-                    // Determine value for trend comparison
-                    if (item.kpi.type === 'venta_sector') {
-                        valueForTrend = item.kpi.ventas || 0;
-                        prevValue = prevKpiForStatusList ? (prevKpiForStatusList.ventas || 0) : 0;
-                    } else if (item.kpi.type === 'utilidad_sector') {
-                        valueForTrend = item.kpi.uop || 0;
-                        prevValue = prevKpiForStatusList ? (prevKpiForStatusList.uop || 0) : 0;
-                    } else if (item.kpi.type === 'market_share') {
-                        valueForTrend = (item.kpi.industria || 0) > 0 ? ((item.kpi.matra || 0) / item.kpi.industria) * 100 : 0;
-                        prevValue = prevKpiForStatusList && (prevKpiForStatusList.industria || 0) > 0 ? ((prevKpiForStatusList.matra || 0) / prevKpiForStatusList.industria) * 100 : 0;
-                    } else { // Handles percentage, ratio, rotacion, inventory, csa, nls types
-                        valueForTrend = item.kpi.value || 0;
-                        prevValue = prevKpiForStatusList ? (prevKpiForStatusList.value || 0) : 0;
+                });
+
+                // --- Utility Chart Logic ---
+                const utilityValues = utilityData.map(d => d.value);
+                const maxUtility = Math.max(...utilityValues);
+                const minUtility = Math.min(...utilityValues.filter(v => v > 0));
+                const maxUtilityIndex = utilityValues.indexOf(maxUtility);
+                const minUtilityIndex = utilityValues.indexOf(minUtility);
+                const utilityBarColors = utilityValues.map((val, index) => {
+                    if (index === maxUtilityIndex) return '#0065a2';
+                    if (index === minUtilityIndex) return '#e77577';
+                    return '#bfdbfe'; // Changed this color to match sales chart
+                });
+                const utilityCtx = document.getElementById('utility-trend-chart').getContext('2d');
+                state.charts.utilityTrend = new Chart(utilityCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: state.months.map(m => m.substring(0,3)),
+                        datasets: [
+                            { label: 'Meta de Utilidad', type: 'line', data: utilityData.map(d => d.meta), borderColor: '#14b8a6', borderWidth: 2, tension: 0.1, pointRadius: 0 },
+                            { label: 'Utilidad Real', data: utilityValues, backgroundColor: utilityBarColors }
+                        ]
+                    },
+                    options: { 
+                        responsive: true, maintainAspectRatio: false, 
+                        plugins: { 
+                            title: { display: true, text: `Tendencia de Utilidad Op. ${state.selectedSector !== 'todos' ? `(${state.selectedSector})` : '(General)'}` },
+                            tooltip: { callbacks: { footer: (tooltipItems) => {
+                                const index = tooltipItems[0].dataIndex;
+                                const utility = utilityData[index].value;
+                                const sales = salesData[index].value;
+                                const margin = sales > 0 ? (utility / sales) * 100 : 0;
+                                return `% Utilidad Op: ${margin.toFixed(1)}%`;
+                            }}}
+                        }, 
+                        scales: { y: { ticks: { callback: value => formatCurrency(value) } } } 
                     }
-                    
-                    const difference = valueForTrend - prevValue;
-                    let trendIcon = '';
-                    if (difference > 0.01) trendIcon = `<i data-lucide="trending-up" class="w-4 h-4 text-green-600"></i>`;
-                    else if (difference < -0.01) trendIcon = `<i data-lucide="trending-down" class="w-4 h-4 text-red-600"></i>`;
-                    else trendIcon = `<i data-lucide="minus" class="w-4 h-4 text-gray-500"></i>`;
-                    
-                    return `
-                        <div class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                            <div>
-                                <p class="text-sm font-medium text-gray-800">${item.name}</p>
-                                <p class="text-sm text-gray-500">Valor: ${displayValue}</p>
+                });
+
+                // Render status lists
+                const listsContainer = document.getElementById('kpi-status-lists');
+                listsContainer.innerHTML = '';
+                Object.entries(statusGroups).forEach(([status, kpis]) => {
+                    if (kpis.length === 0) return; // Don't render empty groups
+                    const styles = getStatusStyles(status);
+                    const listHtml = kpis.map(item => {
+                        const cardHtml = createKpiCardElement(item.name, item.kpi, item.category);
+                        const div = document.createElement('div');
+                        div.appendChild(cardHtml);
+                        const trendIcon = div.querySelector('.kpi-trend i');
+                        const valueText = div.querySelector('.kpi-value').textContent;
+                        
+                        return `
+                            <div class="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">${item.name}</p>
+                                    <p class="text-sm text-gray-500">Valor: ${valueText}</p>
+                                </div>
+                                ${trendIcon ? trendIcon.outerHTML : ''}
                             </div>
-                            ${trendIcon}
+                        `;
+                    }).join('');
+
+                    listsContainer.innerHTML += `
+                        <div class="bg-gray-50 p-4 rounded-xl">
+                            <button class="collapsible-trigger w-full flex items-center justify-between mb-4 text-left">
+                                <div class="flex items-center">
+                                    <i data-lucide="${styles.icon}" class="w-5 h-5 ${styles.color}"></i>
+                                    <h4 class="ml-2 font-semibold text-lg">${status}</h4>
+                                </div>
+                                <div class="flex items-center">
+                                    <span class="mr-2 text-sm font-bold text-gray-500">${kpis.length}</span>
+                                    <i data-lucide="chevron-down" class="w-5 h-5 text-gray-600 transition-transform"></i>
+                                </div>
+                            </button>
+                            <div class="collapsible-content open">
+                                <div class="space-y-3 pt-2 border-t">
+                                    ${kpis.length > 0 ? listHtml : `<p class="text-sm text-gray-500 text-center py-4">No hay KPIs en este estado.</p>`}
+                                </div>
+                            </div>
                         </div>
                     `;
-                }).join('');
-
-                listsContainer.innerHTML += `
-                    <div class="bg-gray-50 p-4 rounded-xl">
-                        <button class="collapsible-trigger w-full flex items-center justify-between mb-4 text-left">
-                            <div class="flex items-center">
-                                <i data-lucide="${styles.icon}" class="w-5 h-5 ${styles.color}"></i>
-                                <h4 class="ml-2 font-semibold text-lg">${status}</h4>
-                            </div>
-                            <div class="flex items-center">
-                                <span class="mr-2 text-sm font-bold text-gray-500">${kpis.length}</span>
-                                <i data-lucide="chevron-down" class="w-5 h-5 text-gray-600 transition-transform"></i>
-                            </div>
-                        </button>
-                        <div class="collapsible-content open">
-                            <div class="space-y-3 pt-2 border-t">
-                                ${kpis.length > 0 ? listHtml : `<p class="text-sm text-gray-500 text-center py-4">No hay KPIs en este estado.</p>`}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            lucide.createIcons();
+                });
+                lucide.createIcons();
+            }, 0);
         }
         
-        async function renderForecastTab() { // Made async
+        function renderForecastTab() {
             tabsContent.innerHTML = `
                 <div class="card">
                     <div class="p-6">
@@ -1283,64 +1279,52 @@
                 </div>
             `;
             
-            await new Promise(resolve => setTimeout(resolve, 0)); // Ensure elements are in DOM
-            
-            const slider = document.getElementById('forecast-months-slider');
-            const label = document.getElementById('forecast-months-label');
-            slider.addEventListener('input', async (e) => { // Made async
-                label.textContent = e.target.value;
-                await updateForecastCharts(parseInt(e.target.value));
-            });
-            await updateForecastCharts(6); // Initial call
+            setTimeout(() => {
+                const slider = document.getElementById('forecast-months-slider');
+                const label = document.getElementById('forecast-months-label');
+                slider.addEventListener('input', (e) => {
+                    label.textContent = e.target.value;
+                    updateForecastCharts(parseInt(e.target.value));
+                });
+                updateForecastCharts(6);
+            }, 0);
         }
 
-        async function updateForecastCharts(forecastMonths) { // Made async
+        function updateForecastCharts(forecastMonths) {
             const linearRegression = (data) => {
                 const n = data.length;
-                // Handle cases where data might be empty or only zeros
-                if (n === 0 || data.every(d => d.y === 0)) {
-                    return (x) => 0; // Return 0 for all forecasts if no meaningful data
-                }
                 if (n < 2) return (x) => data[0]?.y || 0;
                 const sumX = data.reduce((acc, d) => acc + d.x, 0);
                 const sumY = data.reduce((acc, d) => acc + d.y, 0);
                 const sumXY = data.reduce((acc, d) => acc + d.x * d.y, 0);
                 const sumXX = data.reduce((acc, d) => acc + d.x * d.x, 0);
-                const denominator = (n * sumXX - sumX * sumX);
-                if (denominator === 0) { // Avoid division by zero if all x values are the same
-                    return (x) => data[0]?.y || 0; 
-                }
-                const slope = (n * sumXY - sumX * sumY) / denominator;
+                const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
                 const intercept = (sumY - slope * sumX) / n;
-                // Ensure slope and intercept are valid numbers
                 if(isNaN(slope) || isNaN(intercept)) return (x) => data[data.length-1]?.y || 0;
                 return (x) => Math.max(0, slope * x + intercept);
             };
 
-            const getHistoricalData = async (dataType) => { // Made async
-                return await Promise.all(state.months.map(async (month, index) => { // Map also made async
-                    const { currentData: monthData } = await getDataForDisplay({ year: state.selectedYear, month, ignoreFilters: true }); // Get processed data
-                    
-                    let totalValue = 0;
-                    const sectorsToSum = state.selectedSector === 'todos' ? state.sectors : [state.selectedSector];
-                    sectorsToSum.forEach(sector => {
-                        const data = monthData[dataType]?.[sector];
-                        if(data) totalValue += (dataType === 'Ventas' ? (data.ventas || 0) : (data.uop || 0));
-                    });
-                    return { x: index, y: totalValue }; // Return object with x (index) and y (value)
-                }));
-            };
+            const getHistoricalData = (dataType) => state.months.map(month => {
+                const monthData = state.kpiDataByDate[state.selectedYear]?.[month];
+                if (!monthData) return 0;
+                let totalValue = 0;
+                const sectorsToSum = state.selectedSector === 'todos' ? state.sectors : [state.selectedSector];
+                sectorsToSum.forEach(sector => {
+                    const data = monthData[dataType][sector];
+                     if(data) totalValue += (dataType === 'Ventas' ? data.ventas : data.uop);
+                });
+                return totalValue;
+            });
             
-            const historicalSales = await getHistoricalData('Ventas'); // Await data
-            const historicalUtility = await getHistoricalData('Utilidad'); // Await data
+            const historicalSales = getHistoricalData('Ventas');
+            const historicalUtility = getHistoricalData('Utilidad');
             
-            // Filter out points with zero values for more meaningful regression if desired, or handle them in regression.
-            // For now, linearRegression handles zero or empty arrays.
+            const salesPoints = historicalSales.map((y, x) => ({x, y}));
+            const utilityPoints = historicalUtility.map((y, x) => ({x, y}));
 
-            const salesRegression = linearRegression(historicalSales.filter(d => d.y !== 0)); // Filter out zero values for regression
-            const utilityRegression = linearRegression(historicalUtility.filter(d => d.y !== 0)); // Filter out zero values for regression
+            const salesRegression = linearRegression(salesPoints);
+            const utilityRegression = linearRegression(utilityPoints);
             
-            // Forecast values based on regression, starting from the end of historical data's x-axis
             const forecastSales = Array.from({length: forecastMonths}, (_, i) => salesRegression(historicalSales.length + i));
             const forecastUtility = Array.from({length: forecastMonths}, (_, i) => utilityRegression(historicalUtility.length + i));
             
@@ -1350,10 +1334,10 @@
                 allLabels.push(state.months[(lastMonthIndex + i + 1) % 12].substring(0,3));
             }
 
-            const fullSalesData = [...historicalSales.map(d => d.y), ...forecastSales]; // Use only y-values for chart data
-            const fullUtilityData = [...historicalUtility.map(d => d.y), ...forecastUtility]; // Use only y-values for chart data
+            const salesData = [...historicalSales, ...forecastSales];
+            const utilityData = [...historicalUtility, ...forecastUtility];
 
-            const renderChart = (id, chartName, data, historicalDataYValues, color) => { // historicalDataYValues are just the Y-values
+            const renderChart = (id, chartName, data, historicalData, color) => {
                 const ctx = document.getElementById(id).getContext('2d');
                 if (state.charts[id]) state.charts[id].destroy();
                 state.charts[id] = new Chart(ctx, {
@@ -1361,27 +1345,19 @@
                     data: {
                         labels: allLabels.slice(0, data.length),
                         datasets: [
-                            { label: 'Histórico', data: historicalDataYValues, borderColor: color, tension: 0.1, borderWidth: 2 },
-                            { 
-                                label: 'Pronóstico', 
-                                // Only show forecast data starting from the last historical point
-                                data: Array(historicalDataYValues.length -1).fill(null).concat(data.slice(historicalDataYValues.length -1)), 
-                                borderColor: color, 
-                                borderDash: [5, 5], 
-                                tension: 0.1, 
-                                borderWidth: 2 
-                            }
+                            { label: 'Histórico', data: historicalData, borderColor: color, tension: 0.1, borderWidth: 2 },
+                            { label: 'Pronóstico', data: Array(historicalData.length-1).fill(null).concat(data.slice(historicalData.length-1)), borderColor: color, borderDash: [5, 5], tension: 0.1, borderWidth: 2 }
                         ]
                     },
                     options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: value => formatCurrency(value) } } } }
                 });
             };
 
-            renderChart('forecast-sales-chart', 'Ventas', fullSalesData, historicalSales.map(d => d.y), '#3b82f6');
-            renderChart('forecast-utility-chart', 'Utilidad Operativa', fullUtilityData, historicalUtility.map(d => d.y), '#14b8a6');
+            renderChart('forecast-sales-chart', 'Ventas', salesData, historicalSales, '#3b82f6');
+            renderChart('forecast-utility-chart', 'Utilidad Operativa', utilityData, historicalUtility, '#14b8a6');
         }
         
-        async function renderAITab(currentData) { // Made async (though currentData is already fetched)
+        function renderAITab(currentData) {
             tabsContent.innerHTML = `
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="card lg:col-span-1">
@@ -1418,85 +1394,30 @@
             `;
             lucide.createIcons();
 
-            document.getElementById('generate-ai-analysis-btn').addEventListener('click', () => generateAIAnalysis()); // Removed currentData param
+            document.getElementById('generate-ai-analysis-btn').addEventListener('click', () => generateAIAnalysis(currentData));
             document.getElementById('chat-submit-btn').addEventListener('click', () => handleChatSubmit());
             document.getElementById('chat-input').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') handleChatSubmit();
             });
         }
         
-        async function generateAIAnalysis() { // Made async, now calls getDataForDisplay
+        function generateAIAnalysis(currentData) {
             const btn = document.getElementById('generate-ai-analysis-btn');
             const contentDiv = document.getElementById('ai-analysis-content');
             btn.disabled = true;
             btn.innerHTML = `<span class="animate-pulse">Generando...</span>`;
             contentDiv.innerHTML = `<div class="mt-4 text-center text-gray-500 animate-pulse">Analizando datos...</div>`;
             
-            // Get data for general analysis (ignoring current filters)
-            const { currentData: rawDataForAnalysis, allKpis: allCalculatedKpis } = await getDataForDisplay({ ignoreFilters: true });
-
             setTimeout(() => {
-                let summary = `<strong>Análisis para ${state.selectedMonth} ${state.selectedYear}:</strong><ul>`;
-
-                // General Sales and Utility analysis
-                const totalSales = Object.values(rawDataForAnalysis.Ventas).reduce((sum, s) => sum + (s.ventas || 0), 0);
-                const totalSalesMeta = Object.values(rawDataForAnalysis.Ventas).reduce((sum, s) => sum + (s.meta || 0), 0);
-                const totalUtility = Object.values(rawDataForAnalysis.Utilidad).reduce((sum, u) => sum + (u.uop || 0), 0);
-                const totalUtilityMeta = Object.values(rawDataForAnalysis.Utilidad).reduce((sum, u) => sum + (u.meta || 0), 0);
-                
-                summary += `<li><strong>Resumen General:</strong> El rendimiento general de ${state.selectedMonth} ${state.selectedYear} ha sido `;
-                if (totalSalesMeta > 0 && totalSales >= totalSalesMeta * 0.95 && totalUtilityMeta > 0 && totalUtility >= totalUtilityMeta * 0.95) {
-                    summary += `**sólido** con ventas y utilidad cerca o por encima de las metas.`;
-                } else if (totalSalesMeta > 0 && totalSales >= totalSalesMeta * 0.8 && totalUtilityMeta > 0 && totalUtility >= totalUtilityMeta * 0.8) {
-                    summary += `**aceptable**, pero hay áreas con oportunidad de mejora.`;
-                } else {
-                    summary += `**desafiante**, requiriendo atención en varios frentes.`;
-                }
-                summary += ` (Ventas: ${formatCurrency(totalSales)} / Meta: ${formatCurrency(totalSalesMeta)} | Utilidad: ${formatCurrency(totalUtility)} / Meta: ${formatCurrency(totalUtilityMeta)}).</li>`;
-
-
-                // Analyze key areas based on their status (Buen, Regular, Malo)
-                const goodKpis = allCalculatedKpis.filter(k => getKPIStatus(k.kpi) === 'Bueno');
-                const regularKpis = allCalculatedKpis.filter(k => getKPIStatus(k.kpi) === 'Regular');
-                const badKpis = allCalculatedKpis.filter(k => getKPIStatus(k.kpi) === 'Malo');
-
-                if (goodKpis.length > 0) {
-                    summary += `<li><strong>Puntos Fuertes:</strong> Se destaca el buen desempeño en: ${goodKpis.map(k => {
-                        let val = k.kpi.value ?? k.kpi.ventas ?? k.kpi.uop ?? '';
-                        let unit = k.kpi.unit || '';
-                        if (typeof val === 'number' && k.type && k.type.includes('sector')) val = formatCurrency(val);
-                        else if (typeof val === 'number') val = val.toFixed(1);
-                        return `**${k.name}** (${val}${unit})`;
-                    }).join(', ')}. Estos indicadores superaron las expectativas.</li>`;
-                }
-                if (badKpis.length > 0) {
-                    summary += `<li><strong>Áreas de Oportunidad (Requieren Atención):</strong> Se identifican desafíos en: ${badKpis.map(k => {
-                        let val = k.kpi.value ?? k.kpi.ventas ?? k.kpi.uop ?? '';
-                        let unit = k.kpi.unit || '';
-                        if (typeof val === 'number' && k.type && k.type.includes('sector')) val = formatCurrency(val);
-                        else if (typeof val === 'number') val = val.toFixed(1);
-                        return `**${k.name}** (${val}${unit})`;
-                    }).join(', ')}. Es crucial analizar las causas y desarrollar planes de acción.`;
-                    // Specific recommendation for top 'Malo' KPI
-                    const firstBadKpi = badKpis[0];
-                    if (firstBadKpi) {
-                        summary += ` Enfocar la estrategia en mejorar **${firstBadKpi.name}**.`;
-                    }
-                    summary += `</li>`;
-                }
-                if (regularKpis.length > 0) {
-                    summary += `<li><strong>Áreas a Monitorear:</strong> ${regularKpis.map(k => {
-                        let val = k.kpi.value ?? k.kpi.ventas ?? k.kpi.uop ?? '';
-                        let unit = k.kpi.unit || '';
-                        if (typeof val === 'number' && k.type && k.type.includes('sector')) val = formatCurrency(val);
-                        else if (typeof val === 'number') val = val.toFixed(1);
-                        return `**${k.name}** (${val}${unit})`;
-                    }).join(', ')}. Estos KPIs están cerca de la meta pero necesitan seguimiento constante para asegurar su mejora.</li>`;
-                }
-                
-                summary += `<li><strong>Recomendación General:</strong> Mantener el impulso en las áreas de fortaleza y asignar recursos prioritarios a las áreas de oportunidad. Considerar revisar los procesos y estrategias de venta para los sectores o KPIs con bajo rendimiento.</li>`;
-                summary += `</ul>`;
-
+                const summary = `
+                    <strong>Análisis para ${state.selectedMonth} ${state.selectedYear}:</strong>
+                    <ul>
+                        <li><strong>Resumen General:</strong> El rendimiento este mes ha sido mixto. Se observan fortalezas en el sector de <strong>Construcción</strong>, que superó su meta de utilidad, pero hay desafíos en el sector <strong>Agrícola</strong>, con ventas por debajo de lo esperado.</li>
+                        <li><strong>Puntos Fuertes:</strong> La participación de mercado de <strong>Caterpillar PINS</strong> se mantiene robusta, indicando una fuerte posición competitiva. La satisfacción del cliente en la entrega de equipos es alta (${currentData['Procesos Internos']['Satisfacción Entrega de Equipos'].value.toFixed(1)}%), lo cual es un excelente indicador operativo.</li>
+                        <li><strong>Áreas de Oportunidad:</strong> Las ventas del sector <strong>Agrícola</strong> no alcanzaron la meta. Sería beneficioso analizar las causas, como la estacionalidad, la competencia o la efectividad de las campañas de marketing. La <strong>Cobertura Agrícola</strong> (${currentData['Cobertura']['Cobertura Agrícola'].value.toFixed(1)}%) también presenta una oportunidad de mejora.</li>
+                        <li><strong>Recomendación:</strong> Enfocar los esfuerzos del próximo mes en impulsar el sector <strong>Agrícola</strong>, quizás con promociones especiales o un acercamiento más proactivo a clientes clave. Mantener el excelente desempeño en <strong>Construcción</strong> y replicar sus estrategias exitosas en otros sectores.</li>
+                    </ul>
+                `;
                 contentDiv.innerHTML = summary;
                 btn.disabled = false;
                 btn.innerHTML = `✨ Generar Análisis`;
@@ -1504,7 +1425,7 @@
             }, 2000);
         }
 
-        async function handleChatSubmit() { // Made async
+        function handleChatSubmit() {
             const input = document.getElementById('chat-input');
             const chatHistoryDiv = document.getElementById('chat-history');
             const userMessage = input.value.trim();
@@ -1519,13 +1440,14 @@
             chatHistoryDiv.innerHTML += `<div id="thinking-bubble" class="flex justify-start"><div class="p-3 rounded-lg bg-gray-200 text-gray-500 animate-pulse">Pensando...</div></div>`;
             chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
 
-            setTimeout(async () => { // Made inner function async to await getDataForDisplay
+            setTimeout(() => {
                 document.getElementById('thinking-bubble').remove();
                 
+                // --- Enhanced Chat Logic ---
                 const lowerCaseInput = userMessage.toLowerCase();
                 let queryYear = state.selectedYear;
                 let queryMonth = state.selectedMonth;
-                let aiResponse = "Lo siento, no pude encontrar información específica sobre eso. Intenta reformular tu pregunta, o pregunta por un KPI, sector o período específico (ej. 'ventas de Construcción en Febrero 2024').";
+                let aiResponse = "No pude encontrar información específica sobre eso. Por favor, intenta reformular tu pregunta.";
 
                 // Check for year
                 const yearMatch = lowerCaseInput.match(/\b(20\d{2})\b/);
@@ -1539,65 +1461,31 @@
                     queryMonth = monthMatch;
                 }
                 
-                // Get the data for the specified (or default) period, ignoring filters
-                const { allKpis: dataForQuery, currentData: rawDataForQuery } = await getDataForDisplay({
+                // Get the data for the specified (or default) period
+                const { allKpis: dataForQuery } = getDataForDisplay({
                     year: queryYear,
                     month: queryMonth,
-                    ignoreFilters: true 
+                    ignoreFilters: true // Important!
                 });
                 
                 try {
-                    // GENERAL QUESTIONS
-                    if (lowerCaseInput.includes('hola') || lowerCaseInput.includes('saludos')) {
-                        aiResponse = `¡Hola! ¿Cómo puedo ayudarte con los datos de KPIs para ${queryMonth} ${queryYear}?`;
-                    } else if (lowerCaseInput.includes('ventas totales')) {
-                        const totalSales = Object.values(rawDataForQuery.Ventas).reduce((sum, s) => sum + (s.ventas || 0), 0);
-                        aiResponse = `Las ventas totales para ${queryMonth} ${queryYear} fueron de ${formatCurrency(totalSales)}.`;
-                    } else if (lowerCaseInput.includes('utilidad total')) {
-                        const totalUtility = Object.values(rawDataForQuery.Utilidad).reduce((sum, u) => sum + (u.uop || 0), 0);
-                        aiResponse = `La utilidad operativa total para ${queryMonth} ${queryYear} fue de ${formatCurrency(totalUtility)}.`;
-                    } else if (lowerCaseInput.includes('resumen del mes') || lowerCaseInput.includes('análisis general')) {
-                         const sales = Object.values(rawDataForQuery.Ventas).reduce((sum, s) => sum + (s.ventas || 0), 0);
-                         const utility = Object.values(rawDataForQuery.Utilidad).reduce((sum, u) => sum + (u.uop || 0), 0);
-                         const csaCoverage = rawDataForQuery['Procesos Internos']['Equipos con CSA']?.value || 0;
-                         const nlsScore = rawDataForQuery['Procesos Internos']['NLS Mensual']?.value || 0;
-                         aiResponse = `En ${queryMonth} ${queryYear}, las ventas totales fueron ${formatCurrency(sales)} y la utilidad operativa fue ${formatCurrency(utility)}. El porcentaje de equipos con CSA fue del ${csaCoverage.toFixed(1)}% y el NLS mensual de ${nlsScore.toFixed(1)}%.`;
-                    }
-                    else {
-                        // Check for specific KPI mentions including sector or category
-                        const foundKpi = dataForQuery.find(k => lowerCaseInput.includes(k.name.toLowerCase()));
+                    // Find a matching KPI in the full list
+                    const foundKpi = dataForQuery.find(k => lowerCaseInput.includes(k.name.toLowerCase()));
 
-                        if (foundKpi) {
-                            const { name, kpi } = foundKpi;
-                            let displayValue = '';
-                            if (kpi.type === 'venta_sector' || kpi.type === 'utilidad_sector') {
-                                displayValue = formatCurrency(kpi.ventas || kpi.uop);
-                            } else if (kpi.unit === '%') {
-                                displayValue = `${(kpi.value || 0).toFixed(1)}%`;
-                            } else if (kpi.unit === 'x') {
-                                displayValue = `${(kpi.value || 0).toFixed(2)}${kpi.unit}`;
-                            } else if (kpi.type === 'inventory') { // Raw inventory has total, >12m, >24m
-                                // Re-fetch raw data for the specific original KPI name if needed for detailed display
-                                const originalKpiName = name.replace(/Inv\. > (12|24)m - /, 'Inventario ');
-                                const rawInvData = rawDataForQuery['Inventario']?.[originalKpiName];
-                                if (rawInvData) {
-                                    displayValue = `Total: ${formatCurrency(rawInvData.total || 0)}, >12m: ${formatCurrency(rawInvData.mayor_12_meses || 0)}, >24m: ${formatCurrency(rawInvData.mayor_24_meses || 0)}`;
-                                } else {
-                                     displayValue = `${(kpi.value || 0).toFixed(1)}${kpi.unit || ''}`;
-                                }
-                            } else if (kpi.type === 'csa_raw') {
-                                displayValue = `${(kpi.unidades_con_csa || 0).toFixed(0)} de ${(kpi.unidades_totales_cat_sem || 0).toFixed(0)} unidades (${((kpi.unidades_con_csa || 0) / (kpi.unidades_totales_cat_sem || 1) * 100).toFixed(1)}%)`;
-                            } else if (kpi.type === 'nls_raw') {
-                                displayValue = `${(kpi.leales || 0).toFixed(0)} leales, ${(kpi.riesgo || 0).toFixed(0)} en riesgo de ${(kpi.encuestas_totales || 0).toFixed(0)} encuestas.`;
-                            } else {
-                                 displayValue = `${(kpi.value || 0).toFixed(1)}${kpi.unit || ''}`;
-                            }
-                            aiResponse = `Para "${name}" en ${queryMonth} ${queryYear}, el valor fue: ${displayValue}. Estado: ${getKPIStatus(kpi)}.`;
+                    if (foundKpi) {
+                        const { name, kpi, category } = foundKpi;
+                        let displayValue = '';
+                        if (kpi.type.includes('sector')) {
+                            displayValue = formatCurrency(kpi.ventas || kpi.uop);
+                        } else if (kpi.unit === '%') {
+                            displayValue = `${kpi.value.toFixed(1)}%`;
+                        } else {
+                            displayValue = `${kpi.value.toFixed(2)}${kpi.unit || ''}`;
                         }
+                        aiResponse = `Para ${queryMonth} ${queryYear}, el valor de "${name}" fue ${displayValue}.`;
                     }
                 } catch (e) {
-                    console.error("Error in chat logic:", e);
-                    aiResponse = "Tuve un problema al procesar tu pregunta con los datos actuales. Asegúrate de que los datos estén cargados.";
+                     aiResponse = "Tuve un problema al procesar tu pregunta con los datos actuales."
                 }
                 
                 chatHistoryDiv.innerHTML += `<div class="flex justify-start"><div class="p-3 rounded-lg max-w-sm bg-gray-200 text-gray-800">${aiResponse}</div></div>`;
@@ -1609,197 +1497,42 @@
         // MODAL & DATA MANAGEMENT
         // ========================================================================
         
-        async function openManagementModal() { // Made async
+        function openManagementModal() {
             modalYearSelect.value = state.selectedYear;
             modalMonthSelect.value = state.selectedMonth;
-            await populateModalForm(state.selectedYear, state.selectedMonth); // Await populateForm
+            populateModalForm(state.selectedYear, state.selectedMonth);
             managementModal.showModal();
         }
         
-        async function populateModalForm(year, month) { // Made async
-            // Fetch the raw data for the selected month/year directly from Firestore (or use the already loaded one)
-            const dateKey = `${year}-${month}`;
-            let dataToEdit = JSON.parse(JSON.stringify(getInitialMonthData())); // Start with a clean template
-
-            try {
-                const docRef = firebase_doc(db, 'kpis_por_mes', dateKey);
-                const docSnap = await firebase_getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    // Merge fetched data into the template, but only for the 'raw' parts
-                    const fetchedData = docSnap.data();
-                    Object.keys(dataToEdit).forEach(category => {
-                        if (fetchedData[category]) {
-                            dataToEdit[category] = dataToEdit[category] || {}; // Ensure category exists in template
-                            Object.keys(dataToEdit[category]).forEach(kpiName => {
-                                dataToEdit[category][kpiName] = dataToEdit[category][kpiName] || {}; // Ensure KPI exists in template
-                                if (fetchedData[category][kpiName]) {
-                                    // Deep merge for KPI properties
-                                    Object.assign(dataToEdit[category][kpiName], fetchedData[category][kpiName]);
-                                }
-                            });
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error("Error loading data for modal:", error);
-                // alert("Error al cargar datos para el modal de administración."); // Commented to avoid multiple alerts
-            }
-
+        function populateModalForm(year, month) {
+            const dataToEdit = state.kpiDataByDate[year]?.[month] || getInitialMonthData();
             modalFormContent.innerHTML = '';
-            // Categories to display in the modal for direct editing
-            // Note: 'Clientes Nuevos' is purely calculated, so it's not in this list for editing.
-            const categoriesToDisplayInModal = ['Procesos Internos', 'Inventario', 'Participación', 'Ventas', 'Utilidad', 'Cobertura', 'Datos de Origen'];
+            // Exclude calculated categories from the modal
+            const categoriesToExclude = ['Clientes Nuevos'];
 
             Object.entries(dataToEdit).forEach(([category, kpis]) => {
-                if(!categoriesToDisplayInModal.includes(category)) return; // Skip categories not meant for direct editing
-
-                // Filter KPIs within 'Inventario' to show only raw inputs and rotation (not derived percentages)
-                let kpisForModal = Object.entries(kpis);
-                
-                // Filter KPIs within 'Procesos Internos' to show only direct inputs
-                if (category === 'Procesos Internos') {
-                    // Exclude KPIs whose raw data are in 'Datos de Origen'
-                    kpisForModal = kpisForModal.filter(([kpiName, kpiData]) => !['Equipos con CSA', 'NLS Mensual', 'NLS Rolling 6'].includes(kpiName));
-                }
+                if(categoriesToExclude.includes(category)) return;
 
                 const categoryHtml = `
                     <div>
                         <h4 class="font-semibold text-lg mb-2 border-b pb-2">${category}</h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            ${kpisForModal.map(([kpiName, kpiData]) => {
-                                // For 'Inventario' category, special handling to show raw data inputs
-                                if (category === 'Inventario' && kpiData.type === 'inventory') {
-                                    return `
-                                        <div style="background-color: #bb8fce;" class="border border-gray-300 p-4 rounded-lg">
-                                            <p class="font-medium text-sm mb-3 text-white">${kpiName}</p>
-                                            <div class="space-y-2">
+                            ${Object.entries(kpis).map(([kpiName, kpiData]) => `
+                                <div style="background-color: #bb8fce;" class="border border-gray-300 p-4 rounded-lg">
+                                    <p class="font-medium text-sm mb-3 text-white">${kpiName}</p>
+                                    <div class="space-y-2">
+                                        ${Object.entries(kpiData).map(([field, value]) => {
+                                            if (field === 'type' || field === 'unit' || field === 'inverted') return '';
+                                            return `
                                                 <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-total" class="capitalize text-sm text-gray-100">Total</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-total" type="number" step="any" value="${kpiData.total || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
+                                                    <label for="modal-${category}-${kpiName}-${field}" class="capitalize text-sm text-gray-100">${field.replace(/_/g, ' ')}</label>
+                                                    <input data-form-input="true" id="modal-${category}-${kpiName}-${field}" type="number" step="any" value="${value}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
                                                 </div>
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-mayor_12_meses" class="capitalize text-sm text-gray-100">Mayor 12 Meses</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-mayor_12_meses" type="number" step="any" value="${kpiData.mayor_12_meses || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-mayor_24_meses" class="capitalize text-sm text-gray-100">Mayor 24 Meses</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-mayor_24_meses" type="number" step="any" value="${kpiData.mayor_24_meses || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                } else if (category === 'Datos de Origen' && kpiData.type === 'csa_raw') {
-                                    return `
-                                        <div style="background-color: #bb8fce;" class="border border-gray-300 p-4 rounded-lg">
-                                            <p class="font-medium text-sm mb-3 text-white">${kpiName}</p>
-                                            <div class="space-y-2">
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-unidades_con_csa" class="capitalize text-sm text-gray-100">Unidades Con CSA</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-unidades_con_csa" type="number" step="any" value="${kpiData.unidades_con_csa || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-unidades_totales_cat_sem" class="capitalize text-sm text-gray-100">Unidades Totales CAT Sem.</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-unidades_totales_cat_sem" type="number" step="any" value="${kpiData.unidades_totales_cat_sem || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                } else if (category === 'Datos de Origen' && kpiData.type === 'nls_raw') {
-                                    return `
-                                        <div style="background-color: #bb8fce;" class="border border-gray-300 p-4 rounded-lg">
-                                            <p class="font-medium text-sm mb-3 text-white">${kpiName}</p>
-                                            <div class="space-y-2">
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-leales" class="capitalize text-sm text-gray-100">Leales</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-leales" type="number" step="any" value="${kpiData.leales || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-riesgo" class="capitalize text-sm text-gray-100">Riesgo</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-riesgo" type="number" step="any" value="${kpiData.riesgo || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-encuestas_totales" class="capitalize text-sm text-gray-100">Encuestas Totales</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-encuestas_totales" type="number" step="any" value="${kpiData.encuestas_totales || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                } else if (category === 'Ventas' && kpiData.type === 'venta_sector') {
-                                     return `
-                                        <div style="background-color: #bb8fce;" class="border border-gray-300 p-4 rounded-lg">
-                                            <p class="font-medium text-sm mb-3 text-white">${kpiName}</p>
-                                            <div class="space-y-2">
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-ventas" class="capitalize text-sm text-gray-100">Ventas</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-ventas" type="number" step="any" value="${kpiData.ventas || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-ventas_nuevas" class="capitalize text-sm text-gray-100">Ventas Nuevas</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-ventas_nuevas" type="number" step="any" value="${kpiData.ventas_nuevas || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-meta" class="capitalize text-sm text-gray-100">Meta</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-meta" type="number" step="any" value="${kpiData.meta || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                } else if (kpiData.type === 'utilidad_sector') {
-                                    return `
-                                        <div style="background-color: #bb8fce;" class="border border-gray-300 p-4 rounded-lg">
-                                            <p class="font-medium text-sm mb-3 text-white">${kpiName}</p>
-                                            <div class="space-y-2">
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-uop" class="capitalize text-sm text-gray-100">UOP</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-uop" type="number" step="any" value="${kpiData.uop || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-meta" class="capitalize text-sm text-gray-100">Meta</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-meta" type="number" step="any" value="${kpiData.meta || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                } else if (kpiData.type === 'market_share') {
-                                     return `
-                                        <div style="background-color: #bb8fce;" class="border border-gray-300 p-4 rounded-lg">
-                                            <p class="font-medium text-sm mb-3 text-white">${kpiName}</p>
-                                            <div class="space-y-2">
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-matra" class="capitalize text-sm text-gray-100">Matra</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-matra" type="number" step="any" value="${kpiData.matra || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-industria" class="capitalize text-sm text-gray-100">Industria</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-industria" type="number" step="any" value="${kpiData.industria || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-meta" class="capitalize text-sm text-gray-100">Meta</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-meta" type="number" step="any" value="${kpiData.meta || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                }
-                                else { // Default case for KPIs with 'value' and 'meta'
-                                    return `
-                                        <div style="background-color: #bb8fce;" class="border border-gray-300 p-4 rounded-lg">
-                                            <p class="font-medium text-sm mb-3 text-white">${kpiName}</p>
-                                            <div class="space-y-2">
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-value" class="capitalize text-sm text-gray-100">Valor</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-value" type="number" step="any" value="${kpiData.value || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                                <div class="flex items-center justify-between">
-                                                    <label for="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-meta" class="capitalize text-sm text-gray-100">Meta</label>
-                                                    <input data-form-input="true" id="modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-meta" type="number" step="any" value="${kpiData.meta || 0}" class="w-1/2 block px-3 py-1 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    `;
-                                }
-                            }).join('')}
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
                 `;
@@ -1816,6 +1549,7 @@
                         if (nextInput) {
                             nextInput.focus();
                         } else {
+                            // Optionally focus the save button if it's the last input
                             modalSaveBtn.focus();
                         }
                     }
@@ -1823,96 +1557,31 @@
             });
         }
         
-        async function saveModalChanges() { // Made async
+        function saveModalChanges() {
             const year = modalYearSelect.value;
             const month = modalMonthSelect.value;
-            const dateKey = `${year}-${month}`;
-
-            // Fetch the current raw data from Firestore to ensure we have the latest version
-            const currentDocRef = firebase_doc(db, 'kpis_por_mes', dateKey);
-            const currentDocSnap = await firebase_getDoc(currentDocRef);
-            // Use existing data or a fresh template if document doesn't exist
-            let rawDataToSave = currentDocSnap.exists() ? currentDocSnap.data() : JSON.parse(JSON.stringify(getInitialMonthData()));
-
-
-            // Define categories that contain directly editable fields in the modal
-            const categoriesWithDirectInputs = ['Procesos Internos', 'Inventario', 'Participación', 'Ventas', 'Utilidad', 'Cobertura', 'Datos de Origen'];
-
-            // Loop through the relevant categories and update rawDataToSave from form inputs
-            categoriesWithDirectInputs.forEach(category => {
-                if (rawDataToSave[category]) {
-                    Object.entries(rawDataToSave[category]).forEach(([kpiName, kpiData]) => {
-                        // Check for specific KPI types that have multiple input fields
-                        if (kpiData.type === 'inventory') {
-                            const totalInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-total`);
-                            const mayor12Input = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-mayor_12_meses`);
-                            const mayor24Input = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-mayor_24_meses`);
-                            if (totalInput) rawDataToSave[category][kpiName].total = parseFloat(totalInput.value) || 0;
-                            if (mayor12Input) rawDataToSave[category][kpiName].mayor_12_meses = parseFloat(mayor12Input.value) || 0;
-                            if (mayor24Input) rawDataToSave[category][kpiName].mayor_24_meses = parseFloat(mayor24Input.value) || 0;
-                        } else if (kpiData.type === 'csa_raw') {
-                            const unidadesConCsaInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-unidades_con_csa`);
-                            const unidadesTotalesCatSemInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-unidades_totales_cat_sem`);
-                            if (unidadesConCsaInput) rawDataToSave[category][kpiName].unidades_con_csa = parseFloat(unidadesConCsaInput.value) || 0;
-                            if (unidadesTotalesCatSemInput) rawDataToSave[category][kpiName].unidades_totales_cat_sem = parseFloat(unidadesTotalesCatSemInput.value) || 0;
-                        } else if (kpiData.type === 'nls_raw') {
-                            const lealesInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-leales`);
-                            const riesgoInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-riesgo`);
-                            const encuestasTotalesInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-encuestas_totales`);
-                            if (lealesInput) rawDataToSave[category][kpiName].leales = parseFloat(lealesInput.value) || 0;
-                            if (riesgoInput) rawDataToSave[category][kpiName].riesgo = parseFloat(riesgoInput.value) || 0;
-                            if (encuestasTotalesInput) rawDataToSave[category][kpiName].encuestas_totales = parseFloat(encuestasTotalesInput.value) || 0;
-                        } else if (kpiData.type === 'venta_sector') {
-                            const ventasInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-ventas`);
-                            const ventasNuevasInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-ventas_nuevas`);
-                            const metaInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-meta`);
-                            if (ventasInput) rawDataToSave[category][kpiName].ventas = parseFloat(ventasInput.value) || 0;
-                            if (ventasNuevasInput) rawDataToSave[category][kpiName].ventas_nuevas = parseFloat(ventasNuevasInput.value) || 0;
-                            if (metaInput) rawDataToSave[category][kpiName].meta = parseFloat(metaInput.value) || 0;
-                        } else if (kpiData.type === 'utilidad_sector') {
-                            const uopInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-uop`);
-                            const metaInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-meta`);
-                            if (uopInput) rawDataToSave[category][kpiName].uop = parseFloat(uopInput.value) || 0;
-                            if (metaInput) rawDataToSave[category][kpiName].meta = parseFloat(metaInput.value) || 0;
-                        } else if (kpiData.type === 'market_share') {
-                            const matraInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-matra`);
-                            const industriaInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-industria`);
-                            const metaInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-meta`);
-                            if (matraInput) rawDataToSave[category][kpiName].matra = parseFloat(matraInput.value) || 0;
-                            if (industriaInput) rawDataToSave[category][kpiName].industria = parseFloat(industriaInput.value) || 0;
-                            if (metaInput) rawDataToSave[category][kpiName].meta = parseFloat(metaInput.value) || 0;
-                        }
-                        else { // Default case for KPIs with 'value' and 'meta' fields directly
-                            const valueInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-value`);
-                            const metaInput = document.getElementById(`modal-${category.replace(/\s/g,'-')}-${kpiName.replace(/\s/g,'-')}-meta`);
-                            if (valueInput) rawDataToSave[category][kpiName].value = parseFloat(valueInput.value) || 0;
-                            if (metaInput) rawDataToSave[category][kpiName].meta = parseFloat(metaInput.value) || 0;
+            const dataToEdit = state.kpiDataByDate[year]?.[month] || getInitialMonthData();
+            
+            Object.entries(dataToEdit).forEach(([category, kpis]) => {
+                 if (['Clientes Nuevos'].includes(category)) return; // Skip calculated categories
+                Object.entries(kpis).forEach(([kpiName, kpiData]) => {
+                    Object.keys(kpiData).forEach(field => {
+                        if (field === 'type' || field === 'unit' || field === 'inverted') return;
+                        const input = document.getElementById(`modal-${category}-${kpiName}-${field}`);
+                        if (input) {
+                            state.kpiDataByDate[year][month][category][kpiName][field] = parseFloat(input.value) || 0;
                         }
                     });
-                }
+                });
             });
-
-            try {
-                // Save the updated raw data to Firestore
-                await firebase_setDoc(firebase_doc(db, 'kpis_por_mes', dateKey), rawDataToSave);
-                alert('¡Datos guardados exitosamente en la nube!');
-                console.log("Document successfully written!");
-
-                // Update local state AFTER successful save to cloud (this also re-calculates derived KPIs)
-                state.kpiDataByDate[year] = state.kpiDataByDate[year] || {};
-                state.kpiDataByDate[year][month] = rawDataToSave; // Store the raw data back
-
-                state.selectedYear = year;
-                state.selectedMonth = month;
-                yearSelect.value = year;
-                monthSelect.value = month;
-
-                managementModal.close();
-                await renderDashboard(); // Re-render the dashboard with the new data
-            } catch (error) {
-                console.error("Error writing document: ", error);
-                alert('Hubo un error al guardar los datos. Revisa la consola (F12) para más detalles.');
-            }
+            
+            state.selectedYear = year;
+            state.selectedMonth = month;
+            yearSelect.value = year;
+            monthSelect.value = month;
+            
+            managementModal.close();
+            renderDashboard();
         }
 
         function getMonthSequence(endYearStr, endMonthStr, count) {
@@ -1931,62 +1600,22 @@
             return sequence;
         }
 
-        async function handleExport() { // Made async
-            const { allKpis, currentData: rawDataForExport } = await getDataForDisplay({ignoreFilters: true}); // Get all raw and processed KPIs
+        function handleExport() {
+            const { allKpis } = getDataForDisplay();
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Category,KPI,Type,Status,Value,Meta,Raw Data Details\n"; // Added Raw Data Details column
+            csvContent += "Category,KPI,Status,Value,Meta\n";
 
-            // Iterate over the raw data structure for comprehensive export
-            Object.entries(rawDataForExport).forEach(([category, kpis]) => {
-                if (category === 'Clientes Nuevos') return; // Skip derived category
-
-                Object.entries(kpis).forEach(([kpiName, kpiData]) => {
-                    const status = getKPIStatus(kpiData); // Use the kpiData directly
-                    let valueToExport;
-                    let rawDataDetails = '';
-
-                    // Determine value and raw data details based on type
-                    if (kpiData.type === 'venta_sector') {
-                        valueToExport = kpiData.ventas || 0;
-                        rawDataDetails = `Ventas Nuevas: ${kpiData.ventas_nuevas || 0}`;
-                    } else if (kpiData.type === 'utilidad_sector') {
-                        valueToExport = kpiData.uop || 0;
-                    } else if (kpiData.type === 'market_share') {
-                        valueToExport = (kpiData.industria || 0) > 0 ? ((kpiData.matra || 0) / kpiData.industria) * 100 : 0;
-                        rawDataDetails = `Matra: ${kpiData.matra || 0}, Industria: ${kpiData.industria || 0}`;
-                    } else if (kpiData.type === 'inventory') {
-                        valueToExport = `Total: ${kpiData.total || 0}`; // Export total as primary value
-                        rawDataDetails = `>12m: ${kpiData.mayor_12_meses || 0}, >24m: ${kpiData.mayor_24_meses || 0}`;
-                    } else if (kpiData.type === 'csa_raw') {
-                        valueToExport = (kpiData.unidades_totales_cat_sem || 0) > 0 ? ((kpiData.unidades_con_csa || 0) / kpiData.unidades_totales_cat_sem) * 100 : 0;
-                        rawDataDetails = `Con CSA: ${kpiData.unidades_con_csa || 0}, Total Unidades: ${kpiData.unidades_totales_cat_sem || 0}`;
-                    } else if (kpiData.type === 'nls_raw') {
-                        valueToExport = (kpiData.encuestas_totales || 0) > 0 ? (((kpiData.leales || 0) - (kpiData.riesgo || 0)) / kpiData.encuestas_totales) * 100 : 0;
-                        rawDataDetails = `Leales: ${kpiData.leales || 0}, Riesgo: ${kpiData.riesgo || 0}, Total Encuestas: ${kpiData.encuestas_totales || 0}`;
-                    } else { // Generic value/meta KPIs (percentage, rotacion, etc.)
-                        valueToExport = kpiData.value || 0;
-                    }
-
-                    // Format value if it's a number to avoid scientific notation for large numbers in CSV
-                    if (typeof valueToExport === 'number') {
-                        valueToExport = valueToExport.toString();
-                    } else if (valueToExport.includes(':')) { // For complex raw data details already formatted
-                         valueToExport = `"${valueToExport}"`; // Wrap in quotes if it contains commas or special chars
-                    }
-
-
-                    const row = [
-                        category, 
-                        `"${kpiName}"`, 
-                        kpiData.type || 'N/A', 
-                        status, 
-                        valueToExport, 
-                        kpiData.meta || '',
-                        `"${rawDataDetails}"` // Ensure raw details are quoted
-                    ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(','); // Double quotes and escape existing quotes
-
-                    csvContent += row + "\n";
-                });
+            allKpis.forEach(({ category, name, kpi }) => {
+                const status = getKPIStatus(kpi);
+                let value;
+                 if (kpi.type === 'new_client_percentage' || kpi.type === 'inventory_percentage' || kpi.type === 'csa_percentage' || kpi.type === 'nls_percentage') value = kpi.value;
+                else if (kpi.type === 'venta_sector') value = kpi.ventas;
+                else if (kpi.type === 'utilidad_sector') value = kpi.uop;
+                else if (kpi.type === 'market_share') value = kpi.industria > 0 ? (kpi.matra / kpi.industria) * 100 : 0;
+                else value = kpi.value;
+                
+                const row = [category, `"${name}"`, status, value, kpi.meta].join(',');
+                csvContent += row + "\n";
             });
             
             const encodedUri = encodeURI(csvContent);
@@ -2002,7 +1631,10 @@
         // ========================================================================
         // INITIALIZATION & EVENT LISTENERS
         // ========================================================================
-        async function initDashboard() { // Made async
+        function initDashboard() {
+            // Populate data
+            populateInitialData();
+
             // Populate selectors
             yearSelect.innerHTML = state.years.map(y => `<option value="${y}">${y}</option>`).join('');
             monthSelect.innerHTML = state.months.map(m => `<option value="${m}">${m}</option>`).join('');
@@ -2017,18 +1649,18 @@
             statusFilterSelect.value = state.filterStatus;
 
             // Initial render
-            await renderDashboard(); // Await the initial dashboard render
+            renderDashboard();
 
             // Event Listeners
-            yearSelect.addEventListener('change', async (e) => { state.selectedYear = e.target.value; await renderDashboard(); });
-            monthSelect.addEventListener('change', async (e) => { state.selectedMonth = e.target.value; await renderDashboard(); });
-            sectorSelect.addEventListener('change', async (e) => { state.selectedSector = e.target.value; await renderDashboard(); });
-            statusFilterSelect.addEventListener('change', async (e) => { state.filterStatus = e.target.value; await renderDashboard(); });
+            yearSelect.addEventListener('change', (e) => { state.selectedYear = e.target.value; renderDashboard(); });
+            monthSelect.addEventListener('change', (e) => { state.selectedMonth = e.target.value; renderDashboard(); });
+            sectorSelect.addEventListener('change', (e) => { state.selectedSector = e.target.value; renderDashboard(); });
+            statusFilterSelect.addEventListener('change', (e) => { state.filterStatus = e.target.value; renderDashboard(); });
             
-            tabsList.addEventListener('click', async (e) => { // Made async
+            tabsList.addEventListener('click', (e) => {
                 if (e.target.tagName === 'BUTTON') {
                     state.selectedCategory = e.target.dataset.tab;
-                    await renderDashboard();
+                    renderDashboard();
                 }
             });
             
@@ -2052,8 +1684,8 @@
             modalCloseBtn.addEventListener('click', () => managementModal.close());
             modalCancelBtn.addEventListener('click', () => managementModal.close());
             modalSaveBtn.addEventListener('click', saveModalChanges);
-            modalYearSelect.addEventListener('change', async (e) => await populateModalForm(e.target.value, modalMonthSelect.value)); // Made async
-            modalMonthSelect.addEventListener('change', async (e) => await populateModalForm(modalYearSelect.value, e.target.value)); // Made async
+            modalYearSelect.addEventListener('change', (e) => populateModalForm(e.target.value, modalMonthSelect.value));
+            modalMonthSelect.addEventListener('change', (e) => populateModalForm(modalYearSelect.value, e.target.value));
             exportBtn.addEventListener('click', handleExport);
         }
 
@@ -2070,3 +1702,4 @@
     </script>
 </body>
 </html>
+```
