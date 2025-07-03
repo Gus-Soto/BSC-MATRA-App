@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.368.0/lucide.min.css" />
     <script src="https://unpkg.com/lucide@latest"></script>
-    
+
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -236,9 +236,8 @@
     // INITIALIZATION & GLOBAL STATE
     // ========================================================================
     document.addEventListener('DOMContentLoaded', () => {
-        
-        // === INICIALIZACIÓN DE FIREBASE ===
-        // Tu configuración de Firebase
+
+        // === CONFIGURACIÓN DE FIREBASE AÑADIDA ===
         const firebaseConfig = {
             apiKey: "AIzaSyAt_2O9DN5qblHUaDnlKFkDKP270TezY6g",
             authDomain: "bsc-matra-app.firebaseapp.com",
@@ -250,8 +249,8 @@
 
         // Inicializa Firebase y obtén una referencia a la base de datos
         const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore(); // ¡Usa 'db' para leer/escribir datos!
-        // ==================================
+        const db = firebase.firestore();
+        // ==========================================
 
         // Initialize Lucide icons
         lucide.createIcons();
@@ -925,7 +924,7 @@
             state.charts[`sparkline-${name}`] = new Chart(chartCanvas.getContext('2d'), {
                 type: 'line',
                 data: {
-                    labels: sequence.map(s => s.month),
+                    labels: sequence.map(s => `${s.month} ${s.year}`),
                     datasets: [{
                         data: historyData,
                         borderColor: '#6366f1',
@@ -1353,7 +1352,7 @@
         function renderAITab(currentData) {
             tabsContent.innerHTML = `
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="card lg:col-span-1">
+                    <div class="card lg:col-span-2">
                         <div class="p-6">
                             <h3 class="text-lg font-semibold flex items-center gap-2"><i data-lucide="sparkles" class="text-yellow-500"></i>Análisis General del Mes</h3>
                             <p class="text-sm text-gray-500">Resumen y recomendaciones generadas por IA para ${state.selectedMonth} ${state.selectedYear}.</p>
@@ -1363,35 +1362,11 @@
                             <div id="ai-analysis-content" class="mt-4 prose prose-sm max-w-none text-gray-700"></div>
                         </div>
                     </div>
-                    <div class="card lg:col-span-1 flex flex-col">
-                        <div class="p-6">
-                            <h3 class="text-lg font-semibold flex items-center gap-2"><i data-lucide="brain-circuit" class="text-purple-500"></i>Chat de Datos</h3>
-                            <p class="text-sm text-gray-500">Pregúntale a la IA sobre los datos del mes actual.</p>
-                        </div>
-                        <div class="p-6 flex-1 flex flex-col">
-                            <div id="chat-history" class="flex-1 overflow-y-auto bg-gray-100 p-4 rounded-md space-y-4 h-64 border border-gray-200">
-                                <div class="flex flex-col items-center justify-center h-full text-center text-gray-500">
-                                    <i data-lucide="brain-circuit" class="w-10 h-10 mb-2"></i>
-                                    <p>Haz una pregunta para empezar.</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="p-6 border-t">
-                            <div class="flex w-full space-x-2">
-                                <input id="chat-input" type="text" placeholder="Ej: ¿Cuál fue la utilidad de Construcción?" class="block w-full px-3 py-2 text-sm border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg"/>
-                                <button id="chat-submit-btn" class="btn bg-purple-600 text-white hover:bg-purple-700 disabled:bg-purple-300"><i data-lucide="send" class="w-4 h-4"></i></button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             `;
             lucide.createIcons();
 
             document.getElementById('generate-ai-analysis-btn').addEventListener('click', () => generateAIAnalysis(currentData));
-            document.getElementById('chat-submit-btn').addEventListener('click', () => handleChatSubmit());
-            document.getElementById('chat-input').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') handleChatSubmit();
-            });
         }
         
         function generateAIAnalysis(currentData) {
@@ -1416,74 +1391,6 @@
                 btn.innerHTML = `✨ Generar Análisis`;
                 lucide.createIcons();
             }, 2000);
-        }
-
-        function handleChatSubmit() {
-            const input = document.getElementById('chat-input');
-            const chatHistoryDiv = document.getElementById('chat-history');
-            const userMessage = input.value.trim();
-            if (!userMessage) return;
-
-            // Add user message to chat
-            chatHistoryDiv.innerHTML += `<div class="flex justify-end"><div class="p-3 rounded-lg max-w-sm bg-blue-500 text-white">${userMessage}</div></div>`;
-            input.value = '';
-            chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
-
-            // Add thinking indicator
-            chatHistoryDiv.innerHTML += `<div id="thinking-bubble" class="flex justify-start"><div class="p-3 rounded-lg bg-gray-200 text-gray-500 animate-pulse">Pensando...</div></div>`;
-            chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
-
-            setTimeout(() => {
-                document.getElementById('thinking-bubble').remove();
-                
-                // --- Enhanced Chat Logic ---
-                const lowerCaseInput = userMessage.toLowerCase();
-                let queryYear = state.selectedYear;
-                let queryMonth = state.selectedMonth;
-                let aiResponse = "No pude encontrar información específica sobre eso. Por favor, intenta reformular tu pregunta.";
-
-                // Check for year
-                const yearMatch = lowerCaseInput.match(/\b(20\d{2})\b/);
-                if (yearMatch) {
-                    queryYear = yearMatch[0];
-                }
-
-                // Check for month
-                const monthMatch = state.months.find(m => lowerCaseInput.includes(m.toLowerCase()));
-                if (monthMatch) {
-                    queryMonth = monthMatch;
-                }
-                
-                // Get the data for the specified (or default) period
-                const { allKpis: dataForQuery } = getDataForDisplay({
-                    year: queryYear,
-                    month: queryMonth,
-                    ignoreFilters: true // Important!
-                });
-                
-                try {
-                    // Find a matching KPI in the full list
-                    const foundKpi = dataForQuery.find(k => lowerCaseInput.includes(k.name.toLowerCase()));
-
-                    if (foundKpi) {
-                        const { name, kpi, category } = foundKpi;
-                        let displayValue = '';
-                        if (kpi.type.includes('sector')) {
-                            displayValue = formatCurrency(kpi.ventas || kpi.uop);
-                        } else if (kpi.unit === '%') {
-                            displayValue = `${kpi.value.toFixed(1)}%`;
-                        } else {
-                            displayValue = `${kpi.value.toFixed(2)}${kpi.unit || ''}`;
-                        }
-                        aiResponse = `Para ${queryMonth} ${queryYear}, el valor de "${name}" fue ${displayValue}.`;
-                    }
-                } catch (e) {
-                     aiResponse = "Tuve un problema al procesar tu pregunta con los datos actuales."
-                }
-                
-                chatHistoryDiv.innerHTML += `<div class="flex justify-start"><div class="p-3 rounded-lg max-w-sm bg-gray-200 text-gray-800">${aiResponse}</div></div>`;
-                chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
-            }, 1500);
         }
 
         // ========================================================================
